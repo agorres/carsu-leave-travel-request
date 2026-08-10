@@ -48,14 +48,14 @@ export class ChecklistController {
   }
 
   @Post('submissions')
-createSubmission(@Body() dto: CreateSubmissionDto) {
-  return this.checklistService.createSubmission(dto);
-}
+  createSubmission(@Body() dto: CreateSubmissionDto) {
+    return this.checklistService.createSubmission(dto);
+  }
 
-@Get('submissions')
-listMySubmissions(@Query('email') email: string) {
-  return this.checklistService.listSubmissionsForEmployee(email);
-}
+  @Get('submissions')
+  listMySubmissions(@Query('email') email: string) {
+    return this.checklistService.listSubmissionsForEmployee(email);
+  }
 
   @Get('submissions/:id')
   getSubmissionProgress(@Param('id') id: string) {
@@ -92,5 +92,10 @@ listMySubmissions(@Query('email') email: string) {
   @Delete('submissions/:id/documents/:itemCode')
   removeDocument(@Param('id') submissionId: string, @Param('itemCode') itemCode: string) {
     return this.checklistService.removeDocument(submissionId, itemCode);
+  }
+
+  @Post('submissions/:id/submit')
+  submitSubmission(@Param('id') id: string) {
+    return this.checklistService.submitSubmission(id);
   }
 }

@@ -22,6 +22,10 @@ export class CreateSubmissionDto {
 
   @IsString()
   @MinLength(2)
+  collegeOfficeUnit: string;
+
+  @IsString()
+  @MinLength(2)
   currentPosition: string;
 
   @IsDateString()

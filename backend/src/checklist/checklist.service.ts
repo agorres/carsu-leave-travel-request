@@ -74,23 +74,25 @@ export class ChecklistService {
   }
 
   async createSubmission(dto: CreateSubmissionDto): Promise<Submission> {
-  this.getChecklist(dto.requestType);
+    this.getChecklist(dto.requestType);
 
-  const submission = this.submissionRepo.create({
-    employeeEmail: dto.employeeEmail,
-    employeeName: dto.employeeName,
-    officeAffiliation: dto.officeAffiliation,
-    currentPosition: dto.currentPosition,
-    inclusiveDateFrom: dto.inclusiveDateFrom,
-    inclusiveDateTo: dto.inclusiveDateTo,
-    yearsInPosition: dto.yearsInPosition,
-    yearsInCsu: dto.yearsInCsu,
-    requestType: dto.requestType,
-    isAbroad: dto.isAbroad ?? false,
-    status: SubmissionStatus.IN_PROGRESS,
-  });
-  return this.submissionRepo.save(submission);
-}
+    const submission = this.submissionRepo.create({
+      employeeEmail: dto.employeeEmail,
+      employeeName: dto.employeeName,
+      officeAffiliation: dto.officeAffiliation,
+      collegeOfficeUnit: dto.collegeOfficeUnit,
+      currentPosition: dto.currentPosition,
+      inclusiveDateFrom: dto.inclusiveDateFrom,
+      inclusiveDateTo: dto.inclusiveDateTo,
+      yearsInPosition: dto.yearsInPosition,
+      yearsInCsu: dto.yearsInCsu,
+      requestType: dto.requestType,
+      isAbroad: dto.isAbroad ?? false,
+      status: SubmissionStatus.IN_PROGRESS,
+    });
+    return this.submissionRepo.save(submission);
+  }
+
   async getSubmission(id: string): Promise<Submission> {
     const submission = await this.submissionRepo.findOne({
       where: { id },
@@ -133,6 +135,9 @@ export class ChecklistService {
     file: { originalname: string; path: string; mimetype: string; size: number },
   ): Promise<SubmissionDocument> {
     const submission = await this.getSubmission(submissionId);
+    if (submission.status === SubmissionStatus.SUBMITTED) {
+      throw new BadRequestException('This request has already been submitted and can no longer be edited');
+    }
     const requiredItems = this.getRequiredItems(submission.requestType, submission.isAbroad);
     const isValidItem = requiredItems.some((i) => i.code === itemCode);
     if (!isValidItem) {
@@ -166,14 +171,39 @@ export class ChecklistService {
   }
 
   async removeDocument(submissionId: string, itemCode: string): Promise<void> {
+    const submission = await this.getSubmission(submissionId);
+    if (submission.status === SubmissionStatus.SUBMITTED) {
+      throw new BadRequestException('This request has already been submitted and can no longer be edited');
+    }
+
     const doc = await this.documentRepo.findOne({ where: { submissionId, itemCode } });
     if (!doc) throw new NotFoundException('Document not found for this item');
     await this.documentRepo.remove(doc);
 
-    const submission = await this.getSubmission(submissionId);
     if (submission.status === SubmissionStatus.COMPLETE) {
       submission.status = SubmissionStatus.IN_PROGRESS;
       await this.submissionRepo.save(submission);
     }
+  }
+
+  /**
+   * Final explicit submit action. Only allowed once every required item
+   * has been uploaded. Locks the submission from further edits.
+   */
+  async submitSubmission(id: string): Promise<Submission> {
+    const submission = await this.getSubmission(id);
+
+    if (submission.status === SubmissionStatus.SUBMITTED) {
+      throw new BadRequestException('This request has already been submitted');
+    }
+
+    const progress = await this.getProgress(id);
+    if (progress.missingItems.length > 0) {
+      throw new BadRequestException('Cannot submit — required documents are still missing');
+    }
+
+    submission.status = SubmissionStatus.SUBMITTED;
+    submission.submittedAt = new Date();
+    return this.submissionRepo.save(submission);
   }
 }

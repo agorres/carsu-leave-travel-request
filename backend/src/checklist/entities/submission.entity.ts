@@ -11,7 +11,8 @@ import { SubmissionDocument } from './submission-document.entity';
 
 export enum SubmissionStatus {
   IN_PROGRESS = 'in_progress', // employee still uploading
-  COMPLETE = 'complete', // all required items uploaded
+  COMPLETE = 'complete', // all required items uploaded, ready to submit
+  SUBMITTED = 'submitted', // employee pressed Submit — locked from further edits
 }
 
 @Entity('submissions')
@@ -28,6 +29,11 @@ export class Submission {
 
   @Column()
   officeAffiliation: string;
+
+  // Specific college/office/unit within the office affiliation,
+  // e.g. "College of Engineering", "HRMS Office"
+  @Column()
+  collegeOfficeUnit: string;
 
   @Column()
   currentPosition: string;
@@ -54,6 +60,9 @@ export class Submission {
 
   @Column({ type: 'enum', enum: SubmissionStatus, default: SubmissionStatus.IN_PROGRESS })
   status: SubmissionStatus;
+
+  @Column({ type: 'timestamp', nullable: true })
+  submittedAt: Date | null;
 
   @OneToMany(() => SubmissionDocument, (doc) => doc.submission, { cascade: true })
   documents: SubmissionDocument[];

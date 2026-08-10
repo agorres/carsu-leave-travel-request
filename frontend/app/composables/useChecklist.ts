@@ -19,9 +19,19 @@ export interface SubmissionDocument {
 
 export interface Submission {
   id: string;
+  employeeEmail: string;
+  employeeName: string;
+  officeAffiliation: string;
+  collegeOfficeUnit: string;
+  currentPosition: string;
+  inclusiveDateFrom: string;
+  inclusiveDateTo: string;
+  yearsInPosition: number;
+  yearsInCsu: number;
   requestType: string;
   isAbroad: boolean;
-  status: 'in_progress' | 'complete';
+  status: 'in_progress' | 'complete' | 'submitted';
+  submittedAt: string | null;
   documents: SubmissionDocument[];
 }
 
@@ -41,6 +51,7 @@ export interface CreateSubmissionInput {
   employeeName: string;
   employeeEmail: string;
   officeAffiliation: string;
+  collegeOfficeUnit: string;
   currentPosition: string;
   inclusiveDateFrom: string;
   inclusiveDateTo: string;
@@ -64,12 +75,12 @@ export function useChecklist() {
     });
   }
 
- async function getProgress(submissionId: string): Promise<SubmissionProgress> {
-  return $fetch(`${base}/checklist/submissions/${submissionId}`, {
-    credentials: 'include',
-    cache: 'no-store',
-  });
-}
+  async function getProgress(submissionId: string): Promise<SubmissionProgress> {
+    return $fetch(`${base}/checklist/submissions/${submissionId}`, {
+      credentials: 'include',
+      cache: 'no-store',
+    });
+  }
 
   async function uploadDocument(submissionId: string, itemCode: string, file: File) {
     const formData = new FormData();
@@ -89,5 +100,12 @@ export function useChecklist() {
     });
   }
 
-  return { listRequestTypes, createSubmission, getProgress, uploadDocument, removeDocument };
+  async function submitSubmission(submissionId: string): Promise<Submission> {
+    return $fetch(`${base}/checklist/submissions/${submissionId}/submit`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+  }
+
+  return { listRequestTypes, createSubmission, getProgress, uploadDocument, removeDocument, submitSubmission };
 }
