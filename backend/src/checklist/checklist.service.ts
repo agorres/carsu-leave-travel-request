@@ -74,12 +74,17 @@ export class ChecklistService {
   }
 
   async createSubmission(dto: CreateSubmissionDto): Promise<Submission> {
-  // Validate the type exists
   this.getChecklist(dto.requestType);
 
   const submission = this.submissionRepo.create({
     employeeEmail: dto.employeeEmail,
     employeeName: dto.employeeName,
+    officeAffiliation: dto.officeAffiliation,
+    currentPosition: dto.currentPosition,
+    inclusiveDateFrom: dto.inclusiveDateFrom,
+    inclusiveDateTo: dto.inclusiveDateTo,
+    yearsInPosition: dto.yearsInPosition,
+    yearsInCsu: dto.yearsInCsu,
     requestType: dto.requestType,
     isAbroad: dto.isAbroad ?? false,
     status: SubmissionStatus.IN_PROGRESS,

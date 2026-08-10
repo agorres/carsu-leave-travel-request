@@ -35,31 +35,41 @@ export interface SubmissionProgress {
   percentComplete: number;
 }
 
+export interface CreateSubmissionInput {
+  requestType: string;
+  isAbroad: boolean;
+  employeeName: string;
+  employeeEmail: string;
+  officeAffiliation: string;
+  currentPosition: string;
+  inclusiveDateFrom: string;
+  inclusiveDateTo: string;
+  yearsInPosition: number;
+  yearsInCsu: number;
+}
+
 export function useChecklist() {
   const config = useRuntimeConfig();
-  const base = config.public.apiBase; // e.g. https://api.example.gov.ph
+  const base = config.public.apiBase;
 
   async function listRequestTypes(): Promise<RequestTypeOption[]> {
     return $fetch(`${base}/checklist/types`);
   }
 
-  async function createSubmission(
-  requestType: string,
-  isAbroad: boolean,
-  employeeName: string,
-  employeeEmail: string,
-): Promise<Submission> {
-  return $fetch(`${base}/checklist/submissions`, {
-    method: 'POST',
-    body: { requestType, isAbroad, employeeName, employeeEmail },
-    credentials: 'include',
-  });
-}
-  async function getProgress(submissionId: string): Promise<SubmissionProgress> {
-    return $fetch(`${base}/checklist/submissions/${submissionId}`, {
+  async function createSubmission(input: CreateSubmissionInput): Promise<Submission> {
+    return $fetch(`${base}/checklist/submissions`, {
+      method: 'POST',
+      body: input,
       credentials: 'include',
     });
   }
+
+ async function getProgress(submissionId: string): Promise<SubmissionProgress> {
+  return $fetch(`${base}/checklist/submissions/${submissionId}`, {
+    credentials: 'include',
+    cache: 'no-store',
+  });
+}
 
   async function uploadDocument(submissionId: string, itemCode: string, file: File) {
     const formData = new FormData();

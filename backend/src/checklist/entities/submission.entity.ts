@@ -26,6 +26,24 @@ export class Submission {
   @Column()
   employeeName: string;
 
+  @Column()
+  officeAffiliation: string;
+
+  @Column()
+  currentPosition: string;
+
+  @Column({ type: 'date' })
+  inclusiveDateFrom: string;
+
+  @Column({ type: 'date' })
+  inclusiveDateTo: string;
+
+  @Column({ type: 'int' })
+  yearsInPosition: number;
+
+  @Column({ type: 'int' })
+  yearsInCsu: number;
+
   @Column({ type: 'enum', enum: RequestType })
   requestType: RequestType;
 
