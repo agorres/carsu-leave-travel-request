@@ -74,25 +74,24 @@ export class ChecklistService {
   }
 
   async createSubmission(dto: CreateSubmissionDto): Promise<Submission> {
-    this.getChecklist(dto.requestType);
+  this.getChecklist(dto.requestType);
 
-    const submission = this.submissionRepo.create({
-      employeeEmail: dto.employeeEmail,
-      employeeName: dto.employeeName,
-      officeAffiliation: dto.officeAffiliation,
-      collegeOfficeUnit: dto.collegeOfficeUnit,
-      currentPosition: dto.currentPosition,
-      inclusiveDateFrom: dto.inclusiveDateFrom,
-      inclusiveDateTo: dto.inclusiveDateTo,
-      yearsInPosition: dto.yearsInPosition,
-      yearsInCsu: dto.yearsInCsu,
-      requestType: dto.requestType,
-      isAbroad: dto.isAbroad ?? false,
-      status: SubmissionStatus.IN_PROGRESS,
-    });
-    return this.submissionRepo.save(submission);
-  }
-
+  const submission = this.submissionRepo.create({
+    employeeEmail: dto.employeeEmail,
+    employeeName: dto.employeeName,
+    officeAffiliation: dto.officeAffiliation,
+    collegeOfficeUnit: dto.collegeOfficeUnit,
+    currentPosition: dto.currentPosition,
+    inclusiveDateFrom: dto.inclusiveDateFrom,
+    inclusiveDateTo: dto.inclusiveDateTo,
+    yearsInPosition: dto.yearsInPosition,
+    yearsInCsu: dto.yearsInCsu,
+    requestType: dto.requestType,
+    isAbroad: dto.isAbroad ?? false,
+    status: SubmissionStatus.IN_PROGRESS,
+  });
+  return this.submissionRepo.save(submission);
+}
   async getSubmission(id: string): Promise<Submission> {
     const submission = await this.submissionRepo.findOne({
       where: { id },
@@ -160,11 +159,14 @@ export class ChecklistService {
     });
     const saved = await this.documentRepo.save(doc);
 
-    // Auto-update status once everything required is in
+    // Auto-update status once everything required is in.
+    // Uses a targeted update (not submissionRepo.save(submission)) because
+    // `submission` was loaded before this document existed — saving that
+    // stale entity would cascade-delete this brand-new document, since its
+    // `documents` relation array doesn't include it yet.
     const progress = await this.getProgress(submissionId);
     if (progress.missingItems.length === 0) {
-      submission.status = SubmissionStatus.COMPLETE;
-      await this.submissionRepo.save(submission);
+      await this.submissionRepo.update(submissionId, { status: SubmissionStatus.COMPLETE });
     }
 
     return saved;
@@ -181,8 +183,7 @@ export class ChecklistService {
     await this.documentRepo.remove(doc);
 
     if (submission.status === SubmissionStatus.COMPLETE) {
-      submission.status = SubmissionStatus.IN_PROGRESS;
-      await this.submissionRepo.save(submission);
+      await this.submissionRepo.update(submissionId, { status: SubmissionStatus.IN_PROGRESS });
     }
   }
 
@@ -202,8 +203,8 @@ export class ChecklistService {
       throw new BadRequestException('Cannot submit — required documents are still missing');
     }
 
-    submission.status = SubmissionStatus.SUBMITTED;
-    submission.submittedAt = new Date();
-    return this.submissionRepo.save(submission);
+    const submittedAt = new Date();
+    await this.submissionRepo.update(id, { status: SubmissionStatus.SUBMITTED, submittedAt });
+    return { ...submission, status: SubmissionStatus.SUBMITTED, submittedAt };
   }
 }
