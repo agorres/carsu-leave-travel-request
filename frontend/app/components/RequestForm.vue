@@ -185,6 +185,10 @@ async function submitRequest() {
   }
 }
 
+function startNewRequest() {
+  router.push('/')
+}
+
 function docFor(itemCode: string) {
   return progress.value?.submission.documents.find((d) => d.itemCode === itemCode)
 }
@@ -335,7 +339,8 @@ const groupedItems = computed(() => {
         </div>
 
         <div v-if="isSubmitted" class="complete-banner">
-          ✓ Request submitted{{ progress.submission.submittedAt ? ' on ' + new Date(progress.submission.submittedAt).toLocaleDateString() : '' }}. This request is now locked.
+          <p>✓ Request submitted{{ progress.submission.submittedAt ? ' on ' + new Date(progress.submission.submittedAt).toLocaleDateString() : '' }}. This request is now locked.</p>
+          <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="readyToSubmit" class="submit-row">
           <p class="ready-note">All required documents are uploaded. Review them above, then submit your request.</p>
@@ -624,6 +629,14 @@ const groupedItems = computed(() => {
   border-radius: 6px;
   font-size: 13.5px;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.complete-banner p {
+  margin: 0;
 }
 
 .submit-row {
