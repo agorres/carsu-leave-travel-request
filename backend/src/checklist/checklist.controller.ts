@@ -6,13 +6,15 @@ import {
   Param,
   Post,
   Query,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { extname, join } from 'path';
+import type { Response } from 'express';
 import { ChecklistService } from './checklist.service';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 import { UploadDocumentDto } from './dto/upload-document.dto';
@@ -48,18 +50,37 @@ export class ChecklistController {
   }
 
   @Post('submissions')
-  createSubmission(@Body() dto: CreateSubmissionDto) {
-    return this.checklistService.createSubmission(dto);
-  }
+createSubmission(@Body() dto: CreateSubmissionDto) {
+  return this.checklistService.createSubmission(dto);
+}
 
-  @Get('submissions')
-  listMySubmissions(@Query('email') email: string) {
-    return this.checklistService.listSubmissionsForEmployee(email);
-  }
+@Get('submissions')
+listMySubmissions(@Query('email') email: string) {
+  return this.checklistService.listSubmissionsForEmployee(email);
+}
 
   @Get('submissions/:id')
   getSubmissionProgress(@Param('id') id: string) {
     return this.checklistService.getProgress(id);
+  }
+
+  // HR/admin view — every request that has been formally submitted.
+  @Get('admin/submitted')
+  listSubmitted() {
+    return this.checklistService.listSubmittedSubmissions();
+  }
+
+  @Get('submissions/:id/documents/:itemCode/file')
+  async downloadDocument(
+    @Param('id') submissionId: string,
+    @Param('itemCode') itemCode: string,
+    @Res() res: Response,
+  ) {
+    const doc = await this.checklistService.getDocumentForDownload(submissionId, itemCode);
+    const absolutePath = join(process.cwd(), doc.storagePath);
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(doc.originalFileName)}"`);
+    res.type(doc.mimeType);
+    res.sendFile(absolutePath);
   }
 
   @Post('submissions/:id/documents')

@@ -75,12 +75,12 @@ export function useChecklist() {
     });
   }
 
-  async function getProgress(submissionId: string): Promise<SubmissionProgress> {
-    return $fetch(`${base}/checklist/submissions/${submissionId}`, {
-      credentials: 'include',
-      cache: 'no-store',
-    });
-  }
+ async function getProgress(submissionId: string): Promise<SubmissionProgress> {
+  return $fetch(`${base}/checklist/submissions/${submissionId}`, {
+    credentials: 'include',
+    cache: 'no-store',
+  });
+}
 
   async function uploadDocument(submissionId: string, itemCode: string, file: File) {
     const formData = new FormData();
@@ -107,5 +107,26 @@ export function useChecklist() {
     });
   }
 
-  return { listRequestTypes, createSubmission, getProgress, uploadDocument, removeDocument, submitSubmission };
+  // HR/admin — every request that has been formally submitted.
+  async function listSubmittedSubmissions(): Promise<Submission[]> {
+    return $fetch(`${base}/checklist/admin/submitted`, {
+      credentials: 'include',
+      cache: 'no-store',
+    });
+  }
+
+  function getDocumentDownloadUrl(submissionId: string, itemCode: string): string {
+    return `${base}/checklist/submissions/${submissionId}/documents/${itemCode}/file`;
+  }
+
+  return {
+    listRequestTypes,
+    createSubmission,
+    getProgress,
+    uploadDocument,
+    removeDocument,
+    submitSubmission,
+    listSubmittedSubmissions,
+    getDocumentDownloadUrl,
+  };
 }

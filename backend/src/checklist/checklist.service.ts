@@ -109,6 +109,21 @@ export class ChecklistService {
     });
   }
 
+  /** HR/admin view: every request that has been formally submitted (locked). */
+  async listSubmittedSubmissions(): Promise<Submission[]> {
+    return this.submissionRepo.find({
+      where: { status: SubmissionStatus.SUBMITTED },
+      relations: { documents: true },
+      order: { submittedAt: 'DESC' },
+    });
+  }
+
+  async getDocumentForDownload(submissionId: string, itemCode: string): Promise<SubmissionDocument> {
+    const doc = await this.documentRepo.findOne({ where: { submissionId, itemCode } });
+    if (!doc) throw new NotFoundException('Document not found for this item');
+    return doc;
+  }
+
   async getProgress(id: string): Promise<SubmissionProgress> {
     const submission = await this.getSubmission(id);
     const requiredItems = this.getRequiredItems(submission.requestType, submission.isAbroad);
