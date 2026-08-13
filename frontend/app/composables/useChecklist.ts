@@ -46,6 +46,7 @@ export interface Submission {
   submittedAt: string | null;
   returnedAt: string | null;
   approvedAt: string | null;
+  createdAt: string;
   documents: SubmissionDocument[];
 }
 
@@ -121,6 +122,15 @@ export function useChecklist() {
     });
   }
 
+  // Employee — every request they've ever created, across all statuses.
+  async function listMySubmissions(email: string): Promise<Submission[]> {
+    return $fetch(`${base}/checklist/submissions`, {
+      params: { email },
+      credentials: 'include',
+      cache: 'no-store',
+    });
+  }
+
   // HR/admin — every request that has been formally submitted.
   async function listSubmittedSubmissions(): Promise<Submission[]> {
     return $fetch(`${base}/checklist/admin/submitted`, {
@@ -172,6 +182,7 @@ export function useChecklist() {
     removeDocument,
     submitSubmission,
     listSubmittedSubmissions,
+    listMySubmissions,
     getDocumentDownloadUrl,
     reviewDocument,
     returnForCorrection,

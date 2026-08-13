@@ -119,6 +119,7 @@ async function beginChecklist() {
       yearsInCsu: yearsInCsu.value ?? 0,
     })
     submissionId.value = submission.id
+    if (import.meta.client) localStorage.setItem('carsu-checklist-employee-email', employeeEmail.value.trim())
     progress.value = await getProgress(submission.id)
     router.replace(`/submit/${submission.id}`)
   } finally {
@@ -250,6 +251,7 @@ const groupedItems = computed(() => {
         </div>
         <span class="app-title">CARSU · Leave &amp; Travel Requirements</span>
       </div>
+      <NuxtLink to="/my-requests" class="my-requests-link">My Requests</NuxtLink>
     </header>
 
     <main class="body">
@@ -477,6 +479,16 @@ const groupedItems = computed(() => {
   align-items: center;
   justify-content: space-between;
   padding: 14px 28px;
+}
+.my-requests-link {
+  color: #fff;
+  background: var(--primary-green);
+  padding: 8px 14px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 .topbar-left {
   display: flex;
