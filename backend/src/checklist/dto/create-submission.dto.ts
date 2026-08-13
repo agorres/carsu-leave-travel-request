@@ -13,8 +13,12 @@ export class CreateSubmissionDto {
   @MinLength(2)
   employeeName: string;
 
+  // Ignored if sent — the controller always overrides this with the
+  // logged-in user's email. Kept optional so the field can be omitted
+  // entirely by the frontend.
+  @IsOptional()
   @IsEmail()
-  employeeEmail: string;
+  employeeEmail?: string;
 
   @IsString()
   @MinLength(2)

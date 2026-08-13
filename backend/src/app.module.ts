@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ChecklistModule } from './checklist/checklist.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ChecklistModule } from './checklist/checklist.module';
       synchronize: true, // dev only — turn off once you have real data
     }),
     ChecklistModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

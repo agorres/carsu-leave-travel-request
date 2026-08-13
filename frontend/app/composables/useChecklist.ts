@@ -77,25 +77,31 @@ export interface CreateSubmissionInput {
 export function useChecklist() {
   const config = useRuntimeConfig();
   const base = config.public.apiBase;
+  const { token } = useAuth();
+
+  // Every checklist endpoint requires login — attach the bearer token.
+  function authHeaders(): Record<string, string> {
+    return token.value ? { Authorization: `Bearer ${token.value}` } : {};
+  }
 
   async function listRequestTypes(): Promise<RequestTypeOption[]> {
-    return $fetch(`${base}/checklist/types`);
+    return $fetch(`${base}/checklist/types`, { headers: authHeaders() });
   }
 
   async function createSubmission(input: CreateSubmissionInput): Promise<Submission> {
     return $fetch(`${base}/checklist/submissions`, {
       method: 'POST',
       body: input,
-      credentials: 'include',
+      headers: authHeaders(),
     });
   }
 
- async function getProgress(submissionId: string): Promise<SubmissionProgress> {
-  return $fetch(`${base}/checklist/submissions/${submissionId}`, {
-    credentials: 'include',
-    cache: 'no-store',
-  });
-}
+  async function getProgress(submissionId: string): Promise<SubmissionProgress> {
+    return $fetch(`${base}/checklist/submissions/${submissionId}`, {
+      headers: authHeaders(),
+      cache: 'no-store',
+    });
+  }
 
   async function uploadDocument(submissionId: string, itemCode: string, file: File) {
     const formData = new FormData();
@@ -104,29 +110,29 @@ export function useChecklist() {
     return $fetch(`${base}/checklist/submissions/${submissionId}/documents`, {
       method: 'POST',
       body: formData,
-      credentials: 'include',
+      headers: authHeaders(),
     });
   }
 
   async function removeDocument(submissionId: string, itemCode: string) {
     return $fetch(`${base}/checklist/submissions/${submissionId}/documents/${itemCode}`, {
       method: 'DELETE',
-      credentials: 'include',
+      headers: authHeaders(),
     });
   }
 
   async function submitSubmission(submissionId: string): Promise<Submission> {
     return $fetch(`${base}/checklist/submissions/${submissionId}/submit`, {
       method: 'POST',
-      credentials: 'include',
+      headers: authHeaders(),
     });
   }
 
   // Employee — every request they've ever created, across all statuses.
-  async function listMySubmissions(email: string): Promise<Submission[]> {
+  // Identity comes from the logged-in session — no email param needed.
+  async function listMySubmissions(): Promise<Submission[]> {
     return $fetch(`${base}/checklist/submissions`, {
-      params: { email },
-      credentials: 'include',
+      headers: authHeaders(),
       cache: 'no-store',
     });
   }
@@ -134,13 +140,17 @@ export function useChecklist() {
   // HR/admin — every request that has been formally submitted.
   async function listSubmittedSubmissions(): Promise<Submission[]> {
     return $fetch(`${base}/checklist/admin/submitted`, {
-      credentials: 'include',
+      headers: authHeaders(),
       cache: 'no-store',
     });
   }
 
+  // Document downloads are plain <a>/img src links, which can't carry an
+  // Authorization header — append the token as a query param instead.
+  // (The backend accepts either; see jwt-auth.guard.ts.)
   function getDocumentDownloadUrl(submissionId: string, itemCode: string): string {
-    return `${base}/checklist/submissions/${submissionId}/documents/${itemCode}/file`;
+    const qs = token.value ? `?token=${encodeURIComponent(token.value)}` : '';
+    return `${base}/checklist/submissions/${submissionId}/documents/${itemCode}/file${qs}`;
   }
 
   // HR/admin — approve or reject a single uploaded document, with an
@@ -154,7 +164,7 @@ export function useChecklist() {
     return $fetch(`${base}/checklist/submissions/${submissionId}/documents/${itemCode}/review`, {
       method: 'POST',
       body: { status, comment },
-      credentials: 'include',
+      headers: authHeaders(),
     });
   }
 
@@ -162,7 +172,7 @@ export function useChecklist() {
   async function returnForCorrection(submissionId: string): Promise<Submission> {
     return $fetch(`${base}/checklist/submissions/${submissionId}/return-for-correction`, {
       method: 'POST',
-      credentials: 'include',
+      headers: authHeaders(),
     });
   }
 
@@ -170,7 +180,7 @@ export function useChecklist() {
   async function approveSubmission(submissionId: string): Promise<Submission> {
     return $fetch(`${base}/checklist/submissions/${submissionId}/approve`, {
       method: 'POST',
-      credentials: 'include',
+      headers: authHeaders(),
     });
   }
 

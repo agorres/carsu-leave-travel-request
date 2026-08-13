@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useChecklist, type Submission } from '~/composables/useChecklist'
+import { useAuth } from '~/composables/useAuth'
+
+definePageMeta({ middleware: 'auth' })
 
 const { listMySubmissions } = useChecklist()
+const { user, logout } = useAuth()
+const router = useRouter()
 
-const STORAGE_KEY = 'carsu-checklist-employee-email'
-
-const emailInput = ref('')
 const submissions = ref<Submission[]>([])
-const loading = ref(false)
+const loading = ref(true)
 const loadError = ref('')
-const searched = ref(false)
 
 const REQUEST_TYPE_LABELS: Record<string, string> = {
   study_leave: 'Study Leave',
@@ -58,30 +59,18 @@ const sortedSubmissions = computed(() => {
 })
 
 async function loadRequests() {
-  const email = emailInput.value.trim()
-  if (!email) return
   loading.value = true
   loadError.value = ''
-  searched.value = true
   try {
-    submissions.value = await listMySubmissions(email)
-    if (import.meta.client) localStorage.setItem(STORAGE_KEY, email)
+    submissions.value = await listMySubmissions()
   } catch (e) {
-    loadError.value = 'Could not load your requests. Check the email and try again.'
+    loadError.value = 'Could not load your requests. Please try again.'
   } finally {
     loading.value = false
   }
 }
 
-onMounted(() => {
-  if (import.meta.client) {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      emailInput.value = saved
-      loadRequests()
-    }
-  }
-})
+onMounted(loadRequests)
 </script>
 
 <template>
@@ -95,32 +84,23 @@ onMounted(() => {
         </div>
         <span class="app-title">CARSU · My Requests</span>
       </div>
-      <NuxtLink to="/" class="new-link">+ New Request</NuxtLink>
+      <div class="topbar-right">
+        <NuxtLink to="/" class="new-link">+ New Request</NuxtLink>
+        <span v-if="user" class="session-email">{{ user.email }}</span>
+        <button class="logout-btn" @click="logout(); router.push('/login')">Log out</button>
+      </div>
     </header>
 
     <main class="body">
-      <section class="card">
+      <p v-if="loadError" class="item-error">{{ loadError }}</p>
+
+      <section v-if="loading" class="card">
         <div class="section-body">
-          <div class="field-row">
-            <div class="field">
-              <label for="email">Your Email Address</label>
-              <input
-                id="email"
-                v-model="emailInput"
-                type="email"
-                placeholder="juan.delacruz@carsu.edu.ph"
-                @keyup.enter="loadRequests"
-              />
-            </div>
-            <button class="lookup-btn" :disabled="!emailInput.trim() || loading" @click="loadRequests">
-              {{ loading ? 'Loading…' : 'View My Requests' }}
-            </button>
-          </div>
-          <p v-if="loadError" class="item-error">{{ loadError }}</p>
+          <p class="muted">Loading your requests…</p>
         </div>
       </section>
 
-      <section v-if="searched && !loading" class="card">
+      <section v-else class="card">
         <div v-if="submissions.length === 0" class="section-body">
           <p class="muted">No requests found for this email.</p>
         </div>
@@ -206,6 +186,31 @@ onMounted(() => {
   text-decoration: none;
   font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
+}
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.session-email {
+  font-size: 12.5px;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+.logout-btn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #fff;
+  padding: 7px 12px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .body {

@@ -2,11 +2,16 @@
 import { ref, onMounted, computed, reactive } from 'vue'
 import { useRoute } from 'vue-router'
 import { useChecklist, type SubmissionProgress } from '~/composables/useChecklist'
+import { useAuth } from '~/composables/useAuth'
+
+definePageMeta({ middleware: 'admin' })
 
 const route = useRoute()
 const id = route.params.id as string
+const router = useRouter()
 
 const { getProgress, getDocumentDownloadUrl, reviewDocument, returnForCorrection, approveSubmission } = useChecklist()
+const { user, logout } = useAuth()
 
 const progress = ref<SubmissionProgress | null>(null)
 const loading = ref(true)
@@ -150,7 +155,11 @@ onMounted(async () => {
   <div class="admin-shell">
     <header class="admin-topbar">
       <div class="admin-title">HRMS — Request Detail</div>
-      <NuxtLink to="/admin" class="link-back">← All Requests</NuxtLink>
+      <div class="admin-topbar-right">
+        <NuxtLink to="/admin" class="link-back">← All Requests</NuxtLink>
+        <span v-if="user" class="session-email">{{ user.email }}</span>
+        <button class="logout-btn" @click="logout(); router.push('/login')">Log out</button>
+      </div>
     </header>
 
     <main class="admin-body">
@@ -334,9 +343,34 @@ onMounted(async () => {
   text-decoration: none;
   font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
 }
 .link-back:hover {
   text-decoration: underline;
+}
+.admin-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.session-email {
+  font-size: 12.5px;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+.logout-btn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #fff;
+  padding: 7px 12px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
 }
 .admin-body {
   max-width: 900px;

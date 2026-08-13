@@ -2,11 +2,13 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useChecklist, type RequestTypeOption, type SubmissionProgress, type SubmissionDocument } from '~/composables/useChecklist'
+import { useAuth } from '~/composables/useAuth'
 
 const props = defineProps<{ initialSubmissionId?: string }>()
 
 const router = useRouter()
 const { listRequestTypes, createSubmission, getProgress, uploadDocument, removeDocument, submitSubmission } = useChecklist()
+const { user, logout } = useAuth()
 
 const types = ref<RequestTypeOption[]>([])
 const loadingTypes = ref(true)
@@ -69,6 +71,11 @@ const submitting = ref(false)
 const submitError = ref('')
 
 onMounted(async () => {
+  // Email is tied to the logged-in session, not manually typed.
+  if (user.value?.email) {
+    employeeUsername.value = user.value.email.replace(/@carsu\.edu\.ph$/, '')
+  }
+
   try {
     types.value = await listRequestTypes()
   } catch (e) {
@@ -119,7 +126,6 @@ async function beginChecklist() {
       yearsInCsu: yearsInCsu.value ?? 0,
     })
     submissionId.value = submission.id
-    if (import.meta.client) localStorage.setItem('carsu-checklist-employee-email', employeeEmail.value.trim())
     progress.value = await getProgress(submission.id)
     router.replace(`/submit/${submission.id}`)
   } finally {
@@ -251,7 +257,11 @@ const groupedItems = computed(() => {
         </div>
         <span class="app-title">CARSU · Leave &amp; Travel Requirements</span>
       </div>
-      <NuxtLink to="/my-requests" class="my-requests-link">My Requests</NuxtLink>
+      <div class="topbar-right">
+        <NuxtLink to="/my-requests" class="my-requests-link">My Requests</NuxtLink>
+        <span v-if="user" class="session-email">{{ user.email }}</span>
+        <button class="logout-btn" @click="logout(); router.push('/login')">Log out</button>
+      </div>
     </header>
 
     <main class="body">
@@ -281,8 +291,8 @@ const groupedItems = computed(() => {
             </div>
             <div class="field">
               <label for="employeeUsername">Email Address</label>
-              <div class="email-compound" :class="{ disabled: !!submissionId }">
-                <input id="employeeUsername" v-model="employeeUsername" type="text" placeholder="juan.delacruz" :disabled="!!submissionId" />
+              <div class="email-compound disabled">
+                <input id="employeeUsername" v-model="employeeUsername" type="text" placeholder="juan.delacruz" disabled />
                 <span class="email-suffix">@carsu.edu.ph</span>
               </div>
             </div>
@@ -489,6 +499,30 @@ const groupedItems = computed(() => {
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
+}
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.session-email {
+  font-size: 12.5px;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+.logout-btn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #fff;
+  padding: 7px 12px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
 }
 .topbar-left {
   display: flex;
