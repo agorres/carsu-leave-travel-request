@@ -62,11 +62,21 @@ const isSubmitted = computed(() => progress.value?.submission.status === 'submit
 const isReturned = computed(() => progress.value?.submission.status === 'returned_for_correction')
 const isApproved = computed(() => progress.value?.submission.status === 'approved')
 // Once returned, everything is locked EXCEPT items HR flagged rejected.
-const canReupload = (itemCode: string) => isReturned.value && docFor(itemCode)?.reviewStatus === 'rejected'
+// The file input overwrites a rejected doc in one step (attachDocument
+// handles that server-side), so `doc` normally still exists here — but
+// treat a missing doc as editable too, as a fallback in case it was ever
+// cleared without an immediate re-upload (e.g. via removeDocument).
+const canReupload = (itemCode: string) => {
+  if (!isReturned.value) return false
+  const doc = docFor(itemCode)
+  return !doc || doc.reviewStatus === 'rejected'
+}
 const hasRejectedRemaining = computed(() =>
   progress.value?.submission.documents.some((d) => d.reviewStatus === 'rejected') ?? false
 )
-const readyToResubmit = computed(() => isReturned.value && !hasRejectedRemaining.value)
+const readyToResubmit = computed(
+  () => isReturned.value && !hasRejectedRemaining.value && (progress.value?.missingItems.length ?? 0) === 0
+)
 const submitting = ref(false)
 const submitError = ref('')
 
@@ -434,15 +444,8 @@ const groupedItems = computed(() => {
                 </td>
                 <td class="col-action">
                   <template v-if="itemEditable(item.code)">
-                    <button
-                      v-if="docFor(item.code)"
-                      class="remove-btn"
-                      @click="onRemove(item.code)"
-                    >
-                      Replace
-                    </button>
-                    <label v-else class="upload-btn" :class="{ busy: uploadingCode === item.code }">
-                      {{ uploadingCode === item.code ? 'Uploading…' : 'Upload' }}
+                    <label class="upload-btn" :class="{ busy: uploadingCode === item.code }">
+                      {{ uploadingCode === item.code ? 'Uploading…' : (docFor(item.code) ? 'Replace' : 'Upload') }}
                       <input
                         type="file"
                         accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"

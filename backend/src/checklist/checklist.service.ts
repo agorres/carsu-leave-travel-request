@@ -180,8 +180,12 @@ export class ChecklistService {
 
     // Once sent back for correction, the employee may only touch items HR
     // flagged as rejected — approved and not-yet-reviewed items stay locked.
+    // A missing document (no `existing` row) counts as fixable too: the only
+    // way to reach "no document while returned" is a rejected item whose
+    // file was removed after the return — refusing it would leave the
+    // submission permanently stuck with no way to complete it.
     if (submission.status === SubmissionStatus.RETURNED_FOR_CORRECTION) {
-      if (!existing || existing.reviewStatus !== DocumentReviewStatus.REJECTED) {
+      if (existing && existing.reviewStatus !== DocumentReviewStatus.REJECTED) {
         throw new BadRequestException(
           'Only documents HR flagged for correction can be re-uploaded',
         );
