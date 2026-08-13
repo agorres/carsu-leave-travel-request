@@ -16,7 +16,7 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   name: string | null;
 
   @Column({ type: 'enum', enum: UserRole, default: UserRole.EMPLOYEE })
