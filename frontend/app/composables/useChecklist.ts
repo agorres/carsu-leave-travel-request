@@ -10,12 +10,24 @@ export interface FlatChecklistItem {
   groupLabel?: string;
 }
 
+export type DocumentReviewStatus = 'pending' | 'approved' | 'rejected';
+
 export interface SubmissionDocument {
   id: string;
   itemCode: string;
   originalFileName: string;
   uploadedAt: string;
+  reviewStatus: DocumentReviewStatus;
+  reviewComment: string | null;
+  reviewedAt: string | null;
 }
+
+export type SubmissionStatus =
+  | 'in_progress'
+  | 'complete'
+  | 'submitted'
+  | 'returned_for_correction'
+  | 'approved';
 
 export interface Submission {
   id: string;
@@ -30,8 +42,10 @@ export interface Submission {
   yearsInCsu: number;
   requestType: string;
   isAbroad: boolean;
-  status: 'in_progress' | 'complete' | 'submitted';
+  status: SubmissionStatus;
   submittedAt: string | null;
+  returnedAt: string | null;
+  approvedAt: string | null;
   documents: SubmissionDocument[];
 }
 
@@ -119,6 +133,37 @@ export function useChecklist() {
     return `${base}/checklist/submissions/${submissionId}/documents/${itemCode}/file`;
   }
 
+  // HR/admin — approve or reject a single uploaded document, with an
+  // optional (required-if-rejecting) comment for the employee.
+  async function reviewDocument(
+    submissionId: string,
+    itemCode: string,
+    status: 'approved' | 'rejected',
+    comment?: string,
+  ): Promise<SubmissionDocument> {
+    return $fetch(`${base}/checklist/submissions/${submissionId}/documents/${itemCode}/review`, {
+      method: 'POST',
+      body: { status, comment },
+      credentials: 'include',
+    });
+  }
+
+  // HR/admin — send the request back to the employee (requires 1+ rejected doc).
+  async function returnForCorrection(submissionId: string): Promise<Submission> {
+    return $fetch(`${base}/checklist/submissions/${submissionId}/return-for-correction`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+  }
+
+  // HR/admin — final approval, requires every document individually approved.
+  async function approveSubmission(submissionId: string): Promise<Submission> {
+    return $fetch(`${base}/checklist/submissions/${submissionId}/approve`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+  }
+
   return {
     listRequestTypes,
     createSubmission,
@@ -128,5 +173,8 @@ export function useChecklist() {
     submitSubmission,
     listSubmittedSubmissions,
     getDocumentDownloadUrl,
+    reviewDocument,
+    returnForCorrection,
+    approveSubmission,
   };
 }

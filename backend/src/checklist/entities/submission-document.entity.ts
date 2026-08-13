@@ -7,6 +7,12 @@ import {
 } from 'typeorm';
 import { Submission } from './submission.entity';
 
+export enum DocumentReviewStatus {
+  PENDING = 'pending', // uploaded, not yet screened by admin
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+}
+
 @Entity('submission_documents')
 export class SubmissionDocument {
   @PrimaryGeneratedColumn('uuid')
@@ -35,6 +41,16 @@ export class SubmissionDocument {
 
   @Column({ type: 'bigint' })
   fileSizeBytes: number;
+
+  @Column({ type: 'enum', enum: DocumentReviewStatus, default: DocumentReviewStatus.PENDING })
+  reviewStatus: DocumentReviewStatus;
+
+  // Admin's remark — required when rejecting, optional otherwise
+  @Column({ type: 'text', nullable: true })
+  reviewComment: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  reviewedAt: Date | null;
 
   @CreateDateColumn()
   uploadedAt: Date;

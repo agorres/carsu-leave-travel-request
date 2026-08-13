@@ -1,11 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { CHECKLISTS, ChecklistItemDef, getChecklistDef } from './checklist-config.data';
 import { RequestType, REQUEST_TYPE_LABELS } from './request-type.enum';
 import { Submission, SubmissionStatus } from './entities/submission.entity';
-import { SubmissionDocument } from './entities/submission-document.entity';
+import { SubmissionDocument, DocumentReviewStatus } from './entities/submission-document.entity';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
+import { ReviewDocumentDto } from './dto/review-document.dto';
 
 export interface FlatChecklistItem {
   code: string; // fully-qualified: "letter_of_intent" or "groupCode:itemCode"
@@ -109,10 +110,21 @@ export class ChecklistService {
     });
   }
 
-  /** HR/admin view: every request that has been formally submitted (locked). */
+  /**
+   * HR/admin view: every request that has ever been formally submitted —
+   * i.e. currently under screening, sent back for correction, or already
+   * approved. Requests still IN_PROGRESS/COMPLETE (not yet submitted) never
+   * appear here.
+   */
   async listSubmittedSubmissions(): Promise<Submission[]> {
     return this.submissionRepo.find({
-      where: { status: SubmissionStatus.SUBMITTED },
+      where: {
+        status: In([
+          SubmissionStatus.SUBMITTED,
+          SubmissionStatus.RETURNED_FOR_CORRECTION,
+          SubmissionStatus.APPROVED,
+        ]),
+      },
       relations: { documents: true },
       order: { submittedAt: 'DESC' },
     });
@@ -149,9 +161,14 @@ export class ChecklistService {
     file: { originalname: string; path: string; mimetype: string; size: number },
   ): Promise<SubmissionDocument> {
     const submission = await this.getSubmission(submissionId);
+
     if (submission.status === SubmissionStatus.SUBMITTED) {
-      throw new BadRequestException('This request has already been submitted and can no longer be edited');
+      throw new BadRequestException('This request is under HR screening and cannot be edited right now');
     }
+    if (submission.status === SubmissionStatus.APPROVED) {
+      throw new BadRequestException('This request has already been approved and can no longer be edited');
+    }
+
     const requiredItems = this.getRequiredItems(submission.requestType, submission.isAbroad);
     const isValidItem = requiredItems.some((i) => i.code === itemCode);
     if (!isValidItem) {
@@ -160,6 +177,17 @@ export class ChecklistService {
 
     // Replace any existing upload for this item (re-upload overwrites)
     const existing = await this.documentRepo.findOne({ where: { submissionId, itemCode } });
+
+    // Once sent back for correction, the employee may only touch items HR
+    // flagged as rejected — approved and not-yet-reviewed items stay locked.
+    if (submission.status === SubmissionStatus.RETURNED_FOR_CORRECTION) {
+      if (!existing || existing.reviewStatus !== DocumentReviewStatus.REJECTED) {
+        throw new BadRequestException(
+          'Only documents HR flagged for correction can be re-uploaded',
+        );
+      }
+    }
+
     if (existing) {
       await this.documentRepo.remove(existing);
     }
@@ -171,6 +199,9 @@ export class ChecklistService {
       storagePath: file.path,
       mimeType: file.mimetype,
       fileSizeBytes: file.size,
+      reviewStatus: DocumentReviewStatus.PENDING,
+      reviewComment: null,
+      reviewedAt: null,
     });
     const saved = await this.documentRepo.save(doc);
 
@@ -179,9 +210,13 @@ export class ChecklistService {
     // `submission` was loaded before this document existed — saving that
     // stale entity would cascade-delete this brand-new document, since its
     // `documents` relation array doesn't include it yet.
-    const progress = await this.getProgress(submissionId);
-    if (progress.missingItems.length === 0) {
-      await this.submissionRepo.update(submissionId, { status: SubmissionStatus.COMPLETE });
+    // Only applies pre-submission — RETURNED_FOR_CORRECTION has its own
+    // "Resubmit" action instead of auto-flipping status.
+    if (submission.status === SubmissionStatus.IN_PROGRESS) {
+      const progress = await this.getProgress(submissionId);
+      if (progress.missingItems.length === 0) {
+        await this.submissionRepo.update(submissionId, { status: SubmissionStatus.COMPLETE });
+      }
     }
 
     return saved;
@@ -190,11 +225,21 @@ export class ChecklistService {
   async removeDocument(submissionId: string, itemCode: string): Promise<void> {
     const submission = await this.getSubmission(submissionId);
     if (submission.status === SubmissionStatus.SUBMITTED) {
-      throw new BadRequestException('This request has already been submitted and can no longer be edited');
+      throw new BadRequestException('This request is under HR screening and cannot be edited right now');
+    }
+    if (submission.status === SubmissionStatus.APPROVED) {
+      throw new BadRequestException('This request has already been approved and can no longer be edited');
     }
 
     const doc = await this.documentRepo.findOne({ where: { submissionId, itemCode } });
     if (!doc) throw new NotFoundException('Document not found for this item');
+
+    if (submission.status === SubmissionStatus.RETURNED_FOR_CORRECTION) {
+      if (doc.reviewStatus !== DocumentReviewStatus.REJECTED) {
+        throw new BadRequestException('Only documents HR flagged for correction can be removed');
+      }
+    }
+
     await this.documentRepo.remove(doc);
 
     if (submission.status === SubmissionStatus.COMPLETE) {
@@ -203,14 +248,19 @@ export class ChecklistService {
   }
 
   /**
-   * Final explicit submit action. Only allowed once every required item
-   * has been uploaded. Locks the submission from further edits.
+   * Explicit submit action. Handles both the first submission (from
+   * IN_PROGRESS/COMPLETE) and re-submission after correction (from
+   * RETURNED_FOR_CORRECTION). Either way it locks the submission for HR
+   * screening.
    */
   async submitSubmission(id: string): Promise<Submission> {
     const submission = await this.getSubmission(id);
 
     if (submission.status === SubmissionStatus.SUBMITTED) {
-      throw new BadRequestException('This request has already been submitted');
+      throw new BadRequestException('This request is already under HR screening');
+    }
+    if (submission.status === SubmissionStatus.APPROVED) {
+      throw new BadRequestException('This request has already been approved');
     }
 
     const progress = await this.getProgress(id);
@@ -218,8 +268,107 @@ export class ChecklistService {
       throw new BadRequestException('Cannot submit — required documents are still missing');
     }
 
+    if (submission.status === SubmissionStatus.RETURNED_FOR_CORRECTION) {
+      const stillRejected = submission.documents.some(
+        (d) => d.reviewStatus === DocumentReviewStatus.REJECTED,
+      );
+      if (stillRejected) {
+        throw new BadRequestException(
+          'Please re-upload every document HR flagged before resubmitting',
+        );
+      }
+    }
+
     const submittedAt = new Date();
     await this.submissionRepo.update(id, { status: SubmissionStatus.SUBMITTED, submittedAt });
     return { ...submission, status: SubmissionStatus.SUBMITTED, submittedAt };
+  }
+
+  /**
+   * Admin marks a single uploaded document as approved or rejected.
+   * Only valid while the submission is under active screening
+   * (SUBMITTED) or already sent back but HR is re-checking a fresh
+   * re-upload (RETURNED_FOR_CORRECTION — e.g. reviewing a corrected file
+   * before the employee resubmits).
+   */
+  async reviewDocument(
+    submissionId: string,
+    itemCode: string,
+    dto: ReviewDocumentDto,
+  ): Promise<SubmissionDocument> {
+    const submission = await this.getSubmission(submissionId);
+    if (
+      submission.status !== SubmissionStatus.SUBMITTED &&
+      submission.status !== SubmissionStatus.RETURNED_FOR_CORRECTION
+    ) {
+      throw new BadRequestException('This request is not currently under HR screening');
+    }
+
+    if (dto.status === DocumentReviewStatus.REJECTED && !dto.comment?.trim()) {
+      throw new BadRequestException('A comment is required when rejecting a document');
+    }
+
+    const doc = await this.documentRepo.findOne({ where: { submissionId, itemCode } });
+    if (!doc) throw new NotFoundException('Document not found for this item');
+
+    doc.reviewStatus = dto.status;
+    doc.reviewComment = dto.status === DocumentReviewStatus.REJECTED ? dto.comment!.trim() : (dto.comment?.trim() ?? null);
+    doc.reviewedAt = new Date();
+    return this.documentRepo.save(doc);
+  }
+
+  /**
+   * Admin sends the whole request back to the employee for correction.
+   * Requires at least one rejected document — otherwise there's nothing
+   * for the employee to fix.
+   */
+  async returnForCorrection(submissionId: string): Promise<Submission> {
+    const submission = await this.getSubmission(submissionId);
+    if (submission.status !== SubmissionStatus.SUBMITTED) {
+      throw new BadRequestException('Only a request currently under screening can be returned');
+    }
+
+    const hasRejected = submission.documents.some(
+      (d) => d.reviewStatus === DocumentReviewStatus.REJECTED,
+    );
+    if (!hasRejected) {
+      throw new BadRequestException(
+        'Reject at least one document with a comment before sending this back',
+      );
+    }
+
+    const returnedAt = new Date();
+    await this.submissionRepo.update(submissionId, {
+      status: SubmissionStatus.RETURNED_FOR_CORRECTION,
+      returnedAt,
+    });
+    return { ...submission, status: SubmissionStatus.RETURNED_FOR_CORRECTION, returnedAt };
+  }
+
+  /**
+   * Final HR approval. Only allowed once every required document has been
+   * individually approved. Locks the submission permanently.
+   */
+  async approveSubmission(submissionId: string): Promise<Submission> {
+    const submission = await this.getSubmission(submissionId);
+    if (submission.status !== SubmissionStatus.SUBMITTED) {
+      throw new BadRequestException('Only a request currently under screening can be approved');
+    }
+
+    const requiredItems = this.getRequiredItems(submission.requestType, submission.isAbroad);
+    const allApproved = requiredItems.every((item) => {
+      const doc = submission.documents.find((d) => d.itemCode === item.code);
+      return doc?.reviewStatus === DocumentReviewStatus.APPROVED;
+    });
+    if (!allApproved) {
+      throw new BadRequestException('Every document must be individually approved first');
+    }
+
+    const approvedAt = new Date();
+    await this.submissionRepo.update(submissionId, {
+      status: SubmissionStatus.APPROVED,
+      approvedAt,
+    });
+    return { ...submission, status: SubmissionStatus.APPROVED, approvedAt };
   }
 }

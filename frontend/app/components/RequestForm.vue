@@ -57,6 +57,14 @@ const infoComplete = computed(() => {
 
 const readyToSubmit = computed(() => progress.value?.submission.status === 'complete')
 const isSubmitted = computed(() => progress.value?.submission.status === 'submitted')
+const isReturned = computed(() => progress.value?.submission.status === 'returned_for_correction')
+const isApproved = computed(() => progress.value?.submission.status === 'approved')
+// Once returned, everything is locked EXCEPT items HR flagged rejected.
+const canReupload = (itemCode: string) => isReturned.value && docFor(itemCode)?.reviewStatus === 'rejected'
+const hasRejectedRemaining = computed(() =>
+  progress.value?.submission.documents.some((d) => d.reviewStatus === 'rejected') ?? false
+)
+const readyToResubmit = computed(() => isReturned.value && !hasRejectedRemaining.value)
 const submitting = ref(false)
 const submitError = ref('')
 
@@ -128,7 +136,8 @@ function recalculateProgress() {
   progress.value.percentComplete = progress.value.totalRequired
     ? Math.round((progress.value.totalUploaded / progress.value.totalRequired) * 100)
     : 0
-  if (progress.value.submission.status !== 'submitted') {
+  const lockedStatuses = ['submitted', 'returned_for_correction', 'approved']
+  if (!lockedStatuses.includes(progress.value.submission.status)) {
     progress.value.submission.status = missingItems.length === 0 ? 'complete' : 'in_progress'
   }
 }
@@ -185,12 +194,32 @@ async function submitRequest() {
   }
 }
 
+async function resubmitRequest() {
+  if (!submissionId.value || !readyToResubmit.value) return
+  submitting.value = true
+  submitError.value = ''
+  try {
+    const updated = await submitSubmission(submissionId.value)
+    if (progress.value) progress.value.submission = { ...progress.value.submission, ...updated }
+  } catch (e: any) {
+    submitError.value = e?.data?.message || 'Resubmit failed. Try again.'
+  } finally {
+    submitting.value = false
+  }
+}
+
 function startNewRequest() {
   router.push('/')
 }
 
 function docFor(itemCode: string) {
   return progress.value?.submission.documents.find((d) => d.itemCode === itemCode)
+}
+
+function itemEditable(itemCode: string) {
+  if (isSubmitted.value || isApproved.value) return false
+  if (isReturned.value) return canReupload(itemCode)
+  return true
 }
 
 const groupedItems = computed(() => {
@@ -338,9 +367,21 @@ const groupedItems = computed(() => {
           <div class="progress-bar-fill" :style="{ width: progress.percentComplete + '%' }" />
         </div>
 
-        <div v-if="isSubmitted" class="complete-banner">
-          <p>✓ Request submitted{{ progress.submission.submittedAt ? ' on ' + new Date(progress.submission.submittedAt).toLocaleDateString() : '' }}. This request is now locked.</p>
+        <div v-if="isApproved" class="complete-banner approved-banner">
+          <p>✓ Request approved{{ progress.submission.approvedAt ? ' on ' + new Date(progress.submission.approvedAt).toLocaleDateString() : '' }}. No further action needed.</p>
           <button class="begin-btn" @click="startNewRequest">Back</button>
+        </div>
+        <div v-else-if="isSubmitted" class="complete-banner">
+          <p>✓ Request submitted{{ progress.submission.submittedAt ? ' on ' + new Date(progress.submission.submittedAt).toLocaleDateString() : '' }} and under HR screening. This request is locked until HR responds.</p>
+          <button class="begin-btn" @click="startNewRequest">Back</button>
+        </div>
+        <div v-else-if="isReturned" class="returned-banner">
+          <p><strong>HR sent this request back for correction.</strong> Fix the flagged document(s) below — everything else stays as-is — then resubmit.</p>
+          <button class="begin-btn" :disabled="!readyToResubmit || submitting" @click="resubmitRequest">
+            {{ submitting ? 'Resubmitting…' : 'Resubmit Request' }}
+          </button>
+          <p v-if="!readyToResubmit" class="ready-note">Re-upload every flagged document to enable resubmission.</p>
+          <p v-if="submitError" class="item-error">{{ submitError }}</p>
         </div>
         <div v-else-if="readyToSubmit" class="submit-row">
           <p class="ready-note">All required documents are uploaded. Review them above, then submit your request.</p>
@@ -367,10 +408,20 @@ const groupedItems = computed(() => {
                   <span v-if="docFor(item.code)" class="item-file">
                     {{ docFor(item.code)!.originalFileName }}
                   </span>
+                  <span
+                    v-if="(isSubmitted || isReturned || isApproved) && docFor(item.code)"
+                    class="review-badge"
+                    :class="`review-${docFor(item.code)!.reviewStatus}`"
+                  >
+                    {{ docFor(item.code)!.reviewStatus }}
+                  </span>
+                  <span v-if="docFor(item.code)?.reviewComment" class="review-comment">
+                    HR: “{{ docFor(item.code)!.reviewComment }}”
+                  </span>
                   <span v-if="errorByCode[item.code]" class="item-error">{{ errorByCode[item.code] }}</span>
                 </td>
                 <td class="col-action">
-                  <template v-if="!isSubmitted">
+                  <template v-if="itemEditable(item.code)">
                     <button
                       v-if="docFor(item.code)"
                       class="remove-btn"
@@ -747,6 +798,52 @@ const groupedItems = computed(() => {
   background: transparent;
   color: var(--gray);
   border: 1px solid #ddd;
+}
+
+.returned-banner {
+  margin: 16px 20px 0;
+  background: #fdecec;
+  border: 1px solid #b00020;
+  color: #7a0016;
+  padding: 14px 16px;
+  border-radius: 6px;
+  font-size: 13.5px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+.returned-banner p {
+  margin: 0;
+}
+.approved-banner {
+  background: #eaf7ea;
+}
+.review-badge {
+  display: inline-block;
+  width: fit-content;
+  padding: 2px 9px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+.review-pending {
+  background: #eee;
+  color: var(--gray);
+}
+.review-approved {
+  background: #dff5df;
+  color: var(--emerald);
+}
+.review-rejected {
+  background: #fde3e3;
+  color: #b00020;
+}
+.review-comment {
+  font-size: 12px;
+  color: #b00020;
+  font-style: italic;
 }
 
 .footer {

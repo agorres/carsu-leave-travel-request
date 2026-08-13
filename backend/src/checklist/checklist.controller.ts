@@ -18,6 +18,7 @@ import type { Response } from 'express';
 import { ChecklistService } from './checklist.service';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 import { UploadDocumentDto } from './dto/upload-document.dto';
+import { ReviewDocumentDto } from './dto/review-document.dto';
 import { RequestType } from './request-type.enum';
 
 // Swap these for your actual HR email-login guard/decorator.
@@ -118,5 +119,26 @@ listMySubmissions(@Query('email') email: string) {
   @Post('submissions/:id/submit')
   submitSubmission(@Param('id') id: string) {
     return this.checklistService.submitSubmission(id);
+  }
+
+  // --- HR/admin document screening actions ---
+
+  @Post('submissions/:id/documents/:itemCode/review')
+  reviewDocument(
+    @Param('id') submissionId: string,
+    @Param('itemCode') itemCode: string,
+    @Body() dto: ReviewDocumentDto,
+  ) {
+    return this.checklistService.reviewDocument(submissionId, itemCode, dto);
+  }
+
+  @Post('submissions/:id/return-for-correction')
+  returnForCorrection(@Param('id') id: string) {
+    return this.checklistService.returnForCorrection(id);
+  }
+
+  @Post('submissions/:id/approve')
+  approveSubmission(@Param('id') id: string) {
+    return this.checklistService.approveSubmission(id);
   }
 }

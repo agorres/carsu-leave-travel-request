@@ -16,8 +16,18 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
   study_leave_extension: 'Study Leave Extension',
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  submitted: 'Under Screening',
+  returned_for_correction: 'Returned for Correction',
+  approved: 'Approved',
+}
+
 function typeLabel(type: string) {
   return REQUEST_TYPE_LABELS[type] ?? type
+}
+
+function statusLabel(status: string) {
+  return STATUS_LABELS[status] ?? status
 }
 
 function formatDate(value: string | null) {
@@ -64,6 +74,7 @@ onMounted(async () => {
               <th>Office / Unit</th>
               <th>Request Type</th>
               <th>Submitted</th>
+              <th>Status</th>
               <th></th>
             </tr>
           </thead>
@@ -79,6 +90,9 @@ onMounted(async () => {
               </td>
               <td>{{ typeLabel(s.requestType) }}</td>
               <td>{{ formatDate(s.submittedAt) }}</td>
+              <td>
+                <span class="status-pill" :class="`pill-${s.status}`">{{ statusLabel(s.status) }}</span>
+              </td>
               <td>
                 <NuxtLink :to="`/admin/${s.id}`" class="view-link">View →</NuxtLink>
               </td>
@@ -174,5 +188,24 @@ onMounted(async () => {
 }
 .view-link:hover {
   text-decoration: underline;
+}
+.status-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.pill-submitted {
+  background: #fff4d6;
+  color: #8a6300;
+}
+.pill-returned_for_correction {
+  background: #fde3e3;
+  color: #b00020;
+}
+.pill-approved {
+  background: #dff5df;
+  color: var(--emerald);
 }
 </style>
