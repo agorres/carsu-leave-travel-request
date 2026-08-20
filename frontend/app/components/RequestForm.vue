@@ -260,11 +260,11 @@ const groupedItems = computed(() => {
   <div class="shell">
     <header class="topbar">
       <div class="topbar-left">
-        <div class="app-icon" aria-hidden="true">
+        <NuxtLink to="/my-requests" class="app-icon" aria-label="Back to my requests">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
             <path d="M8 5l8 7-8 7" stroke="#003300" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-        </div>
+        </NuxtLink>
         <span class="app-title">CARSU · Leave &amp; Travel Requirements</span>
       </div>
       <div class="topbar-right">
@@ -540,6 +540,11 @@ const groupedItems = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.app-icon:hover {
+  opacity: 0.85;
 }
 .app-title {
   font-size: 15.5px;
