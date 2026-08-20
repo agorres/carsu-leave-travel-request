@@ -163,7 +163,7 @@ export class ChecklistService {
     const submission = await this.getSubmission(submissionId);
 
     if (submission.status === SubmissionStatus.SUBMITTED) {
-      throw new BadRequestException('This request is under HR screening and cannot be edited right now');
+      throw new BadRequestException('This request is under ULDC Sub-Committee screening and cannot be edited right now');
     }
     if (submission.status === SubmissionStatus.APPROVED) {
       throw new BadRequestException('This request has already been approved and can no longer be edited');
@@ -229,7 +229,7 @@ export class ChecklistService {
   async removeDocument(submissionId: string, itemCode: string): Promise<void> {
     const submission = await this.getSubmission(submissionId);
     if (submission.status === SubmissionStatus.SUBMITTED) {
-      throw new BadRequestException('This request is under HR screening and cannot be edited right now');
+      throw new BadRequestException('This request is under ULDC Sub-Committee screening and cannot be edited right now');
     }
     if (submission.status === SubmissionStatus.APPROVED) {
       throw new BadRequestException('This request has already been approved and can no longer be edited');
@@ -261,7 +261,7 @@ export class ChecklistService {
     const submission = await this.getSubmission(id);
 
     if (submission.status === SubmissionStatus.SUBMITTED) {
-      throw new BadRequestException('This request is already under HR screening');
+      throw new BadRequestException('This request is already under ULDC Sub-Committee screening');
     }
     if (submission.status === SubmissionStatus.APPROVED) {
       throw new BadRequestException('This request has already been approved');
@@ -305,7 +305,7 @@ export class ChecklistService {
       submission.status !== SubmissionStatus.SUBMITTED &&
       submission.status !== SubmissionStatus.RETURNED_FOR_CORRECTION
     ) {
-      throw new BadRequestException('This request is not currently under HR screening');
+      throw new BadRequestException('This request is not currently under ULDC Sub-Committee screening');
     }
 
     if (dto.status === DocumentReviewStatus.REJECTED && !dto.comment?.trim()) {

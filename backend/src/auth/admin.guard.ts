@@ -7,7 +7,7 @@ export class AdminGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
     if (request.user?.role !== 'admin') {
-      throw new ForbiddenException('HR/admin access required');
+      throw new ForbiddenException('ULDC Sub-Committee access required');
     }
     return true;
   }

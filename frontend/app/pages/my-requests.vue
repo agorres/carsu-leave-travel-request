@@ -25,7 +25,7 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
 const STATUS_LABELS: Record<string, string> = {
   in_progress: 'In Progress',
   complete: 'Ready to Submit',
-  submitted: 'Under HR Screening',
+  submitted: 'Under ULDC Screening',
   returned_for_correction: 'Action Needed',
   approved: 'Approved',
 }

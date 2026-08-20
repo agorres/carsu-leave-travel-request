@@ -154,7 +154,7 @@ onMounted(async () => {
 <template>
   <div class="admin-shell">
     <header class="admin-topbar">
-      <div class="admin-title">HRMS — Request Detail</div>
+      <div class="admin-title">ULDC Sub-Committee — Request Detail</div>
       <div class="admin-topbar-right">
         <NuxtLink to="/admin" class="link-back">← All Requests</NuxtLink>
         <span v-if="user" class="session-email">{{ user.email }}</span>

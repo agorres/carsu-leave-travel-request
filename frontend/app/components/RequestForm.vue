@@ -394,11 +394,11 @@ const groupedItems = computed(() => {
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="isSubmitted" class="complete-banner">
-          <p>✓ Request submitted{{ progress.submission.submittedAt ? ' on ' + new Date(progress.submission.submittedAt).toLocaleDateString() : '' }} and under HR screening. This request is locked until HR responds.</p>
+          <p>✓ Request submitted{{ progress.submission.submittedAt ? ' on ' + new Date(progress.submission.submittedAt).toLocaleDateString() : '' }} and under ULDC Sub-Committee screening. This request is locked until the ULDC Sub-Committee responds.</p>
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="isReturned" class="returned-banner">
-          <p><strong>HR sent this request back for correction.</strong> Fix the flagged document(s) below — everything else stays as-is — then resubmit.</p>
+          <p><strong>The ULDC Sub-Committee sent this request back for correction.</strong> Fix the flagged document(s) below — everything else stays as-is — then resubmit.</p>
           <button class="begin-btn" :disabled="!readyToResubmit || submitting" @click="resubmitRequest">
             {{ submitting ? 'Resubmitting…' : 'Resubmit Request' }}
           </button>
@@ -438,7 +438,7 @@ const groupedItems = computed(() => {
                     {{ docFor(item.code)!.reviewStatus }}
                   </span>
                   <span v-if="docFor(item.code)?.reviewComment" class="review-comment">
-                    HR: “{{ docFor(item.code)!.reviewComment }}”
+                    ULDC: “{{ docFor(item.code)!.reviewComment }}”
                   </span>
                   <span v-if="errorByCode[item.code]" class="item-error">{{ errorByCode[item.code] }}</span>
                 </td>
