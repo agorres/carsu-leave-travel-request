@@ -27,7 +27,8 @@ const STATUS_LABELS: Record<string, string> = {
   complete: 'Ready to Submit',
   submitted: 'Under ULDC Screening',
   returned_for_correction: 'Action Needed',
-  approved: 'Approved',
+  for_board_deliberation: 'For Board Deliberation',
+  board_approved: 'Approved by Board',
 }
 
 function typeLabel(type: string) {
@@ -48,7 +49,8 @@ const sortedSubmissions = computed(() => {
     in_progress: 1,
     complete: 1,
     submitted: 2,
-    approved: 3,
+    for_board_deliberation: 2,
+    board_approved: 3,
   }
   return [...submissions.value].sort((a, b) => {
     const pa = priority[a.status] ?? 9
@@ -345,7 +347,11 @@ onMounted(loadRequests)
   background: #fde3e3;
   color: #b00020;
 }
-.pill-approved {
+.pill-for_board_deliberation {
+  background: #eaf3ff;
+  color: #1a5fb4;
+}
+.pill-board_approved {
   background: #dff5df;
   color: var(--emerald);
 }

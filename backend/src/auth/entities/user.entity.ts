@@ -2,12 +2,13 @@ import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateCol
 
 export enum UserRole {
   EMPLOYEE = 'employee',
-  ADMIN = 'admin',
+  ULDC = 'uldc',
+  BOARD = 'board',
 }
 
 // Created/updated the first time someone completes a magic-link login.
-// Role is derived from ADMIN_EMAILS at login time, so promoting/demoting
-// an admin is just an env var change (see auth.service.ts).
+// Role is derived from ULDC_EMAILS / BOARD_EMAILS at login time, so
+// promoting/demoting a reviewer is just an env var change (see auth.service.ts).
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')

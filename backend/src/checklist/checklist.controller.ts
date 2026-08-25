@@ -22,7 +22,7 @@ import { ReviewDocumentDto } from './dto/review-document.dto';
 import { RequestType } from './request-type.enum';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AdminGuard } from '../auth/admin.guard';
+import { ReviewerGuard, UldcGuard, BoardGuard } from '../auth/role.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/current-user.decorator';
 
@@ -68,11 +68,19 @@ export class ChecklistController {
     return this.checklistService.getProgress(id);
   }
 
-  // HR/admin view — every request that has been formally submitted.
-  @UseGuards(AdminGuard)
-  @Get('admin/submitted')
-  listSubmitted() {
-    return this.checklistService.listSubmittedSubmissions();
+  // ULDC Sub-Committee view — every request that has ever been formally
+  // submitted, through the full pipeline (including after it moves to the Board).
+  @UseGuards(UldcGuard)
+  @Get('uldc/submitted')
+  listUldcSubmissions() {
+    return this.checklistService.listUldcSubmissions();
+  }
+
+  // Board view — only requests ULDC has already forwarded.
+  @UseGuards(BoardGuard)
+  @Get('board/submitted')
+  listBoardSubmissions() {
+    return this.checklistService.listBoardSubmissions();
   }
 
   @Get('submissions/:id/documents/:itemCode/file')
@@ -135,9 +143,9 @@ export class ChecklistController {
     return this.checklistService.submitSubmission(id);
   }
 
-  // --- HR/admin document screening actions ---
+  // --- ULDC Sub-Committee document screening actions ---
 
-  @UseGuards(AdminGuard)
+  @UseGuards(UldcGuard)
   @Post('submissions/:id/documents/:itemCode/review')
   reviewDocument(
     @Param('id') submissionId: string,
@@ -147,21 +155,30 @@ export class ChecklistController {
     return this.checklistService.reviewDocument(submissionId, itemCode, dto);
   }
 
-  @UseGuards(AdminGuard)
+  @UseGuards(UldcGuard)
   @Post('submissions/:id/return-for-correction')
   returnForCorrection(@Param('id') id: string) {
     return this.checklistService.returnForCorrection(id);
   }
 
-  @UseGuards(AdminGuard)
+  @UseGuards(UldcGuard)
   @Post('submissions/:id/approve')
   approveSubmission(@Param('id') id: string) {
     return this.checklistService.approveSubmission(id);
   }
 
-  // Employees can only touch their own submissions; admins can touch any.
+  // Board's final deliberation action — only valid once ULDC has forwarded
+  // the request (status FOR_BOARD_DELIBERATION). Separate role/login from ULDC.
+  @UseGuards(BoardGuard)
+  @Post('submissions/:id/board-approve')
+  boardApprove(@Param('id') id: string) {
+    return this.checklistService.boardApprove(id);
+  }
+
+  // Employees can only touch their own submissions; either reviewer role
+  // (ULDC or Board) can touch/view any submission.
   private async assertOwnerOrAdmin(submissionId: string, user: CurrentUserPayload) {
-    if (user.role === 'admin') return;
+    if (user.role === 'uldc' || user.role === 'board') return;
     const submission = await this.checklistService.getSubmission(submissionId);
     if (submission.employeeEmail !== user.email) {
       throw new ForbiddenException('You do not have access to this request');

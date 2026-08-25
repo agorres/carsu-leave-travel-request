@@ -6,13 +6,23 @@ import { User, UserRole } from './entities/user.entity';
 
 const SESSION_TTL = '7d';
 
-// Comma-separated allowlist, e.g. "hr@carsu.edu.ph,records@carsu.edu.ph".
-// Anyone whose email is on this list gets the admin role on login; a
-// missing env var just means "no admins yet" rather than "everyone is
-// admin" — fail closed.
-function adminEmailSet(): Set<string> {
+// Comma-separated allowlists, e.g. "uldc1@carsu.edu.ph,uldc2@carsu.edu.ph".
+// Anyone whose email is on one of these lists gets that reviewer role on
+// login; a missing env var just means "no one in that role yet" rather
+// than "everyone qualifies" — fail closed. If an email somehow ends up on
+// both lists, ULDC takes precedence.
+function uldcEmailSet(): Set<string> {
   return new Set(
-    (process.env.ADMIN_EMAILS ?? '')
+    (process.env.ULDC_EMAILS ?? '')
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
+function boardEmailSet(): Set<string> {
+  return new Set(
+    (process.env.BOARD_EMAILS ?? '')
       .split(',')
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean),
@@ -52,13 +62,17 @@ export class AuthService {
       );
     }
 
-    const role = adminEmailSet().has(email) ? UserRole.ADMIN : UserRole.EMPLOYEE;
+    const role = uldcEmailSet().has(email)
+      ? UserRole.ULDC
+      : boardEmailSet().has(email)
+        ? UserRole.BOARD
+        : UserRole.EMPLOYEE;
 
     let user = await this.userRepo.findOne({ where: { email } });
     if (!user) {
       user = this.userRepo.create({ email, role, lastLoginAt: new Date() });
     } else {
-      user.role = role; // keep in sync with ADMIN_EMAILS in case it changed
+      user.role = role; // keep in sync with ULDC_EMAILS / BOARD_EMAILS in case it changed
       user.lastLoginAt = new Date();
     }
     await this.userRepo.save(user);

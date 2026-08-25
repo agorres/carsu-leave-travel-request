@@ -116,17 +116,40 @@ export class ChecklistService {
    * approved. Requests still IN_PROGRESS/COMPLETE (not yet submitted) never
    * appear here.
    */
-  async listSubmittedSubmissions(): Promise<Submission[]> {
+  /**
+   * ULDC Sub-Committee view: every request that has ever been formally
+   * submitted — under their own screening, sent back for correction,
+   * forwarded to the Board, or already Board-approved (so they can track
+   * a request's full lifecycle even after it leaves their hands).
+   * Requests still IN_PROGRESS/COMPLETE (not yet submitted) never appear.
+   */
+  async listUldcSubmissions(): Promise<Submission[]> {
     return this.submissionRepo.find({
       where: {
         status: In([
           SubmissionStatus.SUBMITTED,
           SubmissionStatus.RETURNED_FOR_CORRECTION,
-          SubmissionStatus.APPROVED,
+          SubmissionStatus.FOR_BOARD_DELIBERATION,
+          SubmissionStatus.BOARD_APPROVED,
         ]),
       },
       relations: { documents: true },
       order: { submittedAt: 'DESC' },
+    });
+  }
+
+  /**
+   * Board view: only requests ULDC has already forwarded — either
+   * awaiting deliberation or already given final Board approval. The
+   * Board never sees requests still with ULDC (submitted / returned).
+   */
+  async listBoardSubmissions(): Promise<Submission[]> {
+    return this.submissionRepo.find({
+      where: {
+        status: In([SubmissionStatus.FOR_BOARD_DELIBERATION, SubmissionStatus.BOARD_APPROVED]),
+      },
+      relations: { documents: true },
+      order: { uldcApprovedAt: 'DESC' },
     });
   }
 
@@ -165,8 +188,11 @@ export class ChecklistService {
     if (submission.status === SubmissionStatus.SUBMITTED) {
       throw new BadRequestException('This request is under ULDC Sub-Committee screening and cannot be edited right now');
     }
-    if (submission.status === SubmissionStatus.APPROVED) {
-      throw new BadRequestException('This request has already been approved and can no longer be edited');
+    if (
+      submission.status === SubmissionStatus.FOR_BOARD_DELIBERATION ||
+      submission.status === SubmissionStatus.BOARD_APPROVED
+    ) {
+      throw new BadRequestException('This request has already been approved by ULDC and can no longer be edited');
     }
 
     const requiredItems = this.getRequiredItems(submission.requestType, submission.isAbroad);
@@ -231,8 +257,11 @@ export class ChecklistService {
     if (submission.status === SubmissionStatus.SUBMITTED) {
       throw new BadRequestException('This request is under ULDC Sub-Committee screening and cannot be edited right now');
     }
-    if (submission.status === SubmissionStatus.APPROVED) {
-      throw new BadRequestException('This request has already been approved and can no longer be edited');
+    if (
+      submission.status === SubmissionStatus.FOR_BOARD_DELIBERATION ||
+      submission.status === SubmissionStatus.BOARD_APPROVED
+    ) {
+      throw new BadRequestException('This request has already been approved by ULDC and can no longer be edited');
     }
 
     const doc = await this.documentRepo.findOne({ where: { submissionId, itemCode } });
@@ -263,8 +292,11 @@ export class ChecklistService {
     if (submission.status === SubmissionStatus.SUBMITTED) {
       throw new BadRequestException('This request is already under ULDC Sub-Committee screening');
     }
-    if (submission.status === SubmissionStatus.APPROVED) {
-      throw new BadRequestException('This request has already been approved');
+    if (
+      submission.status === SubmissionStatus.FOR_BOARD_DELIBERATION ||
+      submission.status === SubmissionStatus.BOARD_APPROVED
+    ) {
+      throw new BadRequestException('This request has already been approved by ULDC');
     }
 
     const progress = await this.getProgress(id);
@@ -350,8 +382,10 @@ export class ChecklistService {
   }
 
   /**
-   * Final HR approval. Only allowed once every required document has been
-   * individually approved. Locks the submission permanently.
+   * ULDC Sub-Committee's final screening action. Only allowed once every
+   * required document has been individually approved. Does not close the
+   * request out — it forwards the request to the Board for final
+   * deliberation.
    */
   async approveSubmission(submissionId: string): Promise<Submission> {
     const submission = await this.getSubmission(submissionId);
@@ -368,11 +402,30 @@ export class ChecklistService {
       throw new BadRequestException('Every document must be individually approved first');
     }
 
-    const approvedAt = new Date();
+    const uldcApprovedAt = new Date();
     await this.submissionRepo.update(submissionId, {
-      status: SubmissionStatus.APPROVED,
-      approvedAt,
+      status: SubmissionStatus.FOR_BOARD_DELIBERATION,
+      uldcApprovedAt,
     });
-    return { ...submission, status: SubmissionStatus.APPROVED, approvedAt };
+    return { ...submission, status: SubmissionStatus.FOR_BOARD_DELIBERATION, uldcApprovedAt };
+  }
+
+  /**
+   * Board's final deliberation action. Only valid once ULDC has approved
+   * every document and forwarded the request. Locks the submission
+   * permanently — this is the last stage in the workflow.
+   */
+  async boardApprove(submissionId: string): Promise<Submission> {
+    const submission = await this.getSubmission(submissionId);
+    if (submission.status !== SubmissionStatus.FOR_BOARD_DELIBERATION) {
+      throw new BadRequestException('Only a request forwarded to the Board can be given Board approval');
+    }
+
+    const boardApprovedAt = new Date();
+    await this.submissionRepo.update(submissionId, {
+      status: SubmissionStatus.BOARD_APPROVED,
+      boardApprovedAt,
+    });
+    return { ...submission, status: SubmissionStatus.BOARD_APPROVED, boardApprovedAt };
   }
 }

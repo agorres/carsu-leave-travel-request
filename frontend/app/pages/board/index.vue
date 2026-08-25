@@ -3,9 +3,9 @@ import { ref, onMounted } from 'vue'
 import { useChecklist, type Submission } from '~/composables/useChecklist'
 import { useAuth } from '~/composables/useAuth'
 
-definePageMeta({ middleware: 'admin' })
+definePageMeta({ middleware: 'board' })
 
-const { listSubmittedSubmissions } = useChecklist()
+const { listBoardSubmissions } = useChecklist()
 const { user, logout } = useAuth()
 const router = useRouter()
 
@@ -19,12 +19,12 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
   personal_travel: 'Personal Travel',
   sabbatical_leave: 'Sabbatical Leave',
   study_leave_extension: 'Study Leave Extension',
+  local_travel: 'Local Travel (w/ Funding)',
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  submitted: 'Under Screening',
-  returned_for_correction: 'Returned for Correction',
-  approved: 'Approved',
+  for_board_deliberation: 'For Deliberation',
+  board_approved: 'Approved',
 }
 
 function typeLabel(type: string) {
@@ -42,9 +42,9 @@ function formatDate(value: string | null) {
 
 onMounted(async () => {
   try {
-    submissions.value = await listSubmittedSubmissions()
+    submissions.value = await listBoardSubmissions()
   } catch (e) {
-    loadError.value = 'Could not load submitted requests. Is the server running?'
+    loadError.value = 'Could not load requests. Is the server running?'
   } finally {
     loading.value = false
   }
@@ -54,9 +54,8 @@ onMounted(async () => {
 <template>
   <div class="admin-shell">
     <header class="admin-topbar">
-      <div class="admin-title">ULDC Sub-Committee — Submitted Requests</div>
+      <div class="admin-title">Board — Requests for Deliberation</div>
       <div class="admin-topbar-right">
-        <NuxtLink to="/" class="link-back">+ New Request</NuxtLink>
         <span v-if="user" class="session-email">{{ user.email }}</span>
         <button class="logout-btn" @click="logout(); router.push('/login')">Log out</button>
       </div>
@@ -64,7 +63,7 @@ onMounted(async () => {
 
     <main class="admin-body">
       <div v-if="loading" class="admin-card">
-        <p class="muted">Loading submitted requests…</p>
+        <p class="muted">Loading requests…</p>
       </div>
 
       <div v-else-if="loadError" class="admin-card">
@@ -72,7 +71,7 @@ onMounted(async () => {
       </div>
 
       <div v-else-if="submissions.length === 0" class="admin-card">
-        <p class="muted">No requests have been submitted yet.</p>
+        <p class="muted">No requests have been forwarded by ULDC yet.</p>
       </div>
 
       <div v-else class="admin-card">
@@ -82,7 +81,7 @@ onMounted(async () => {
               <th>Employee</th>
               <th>Office / Unit</th>
               <th>Request Type</th>
-              <th>Submitted</th>
+              <th>Forwarded by ULDC</th>
               <th>Status</th>
               <th></th>
             </tr>
@@ -98,12 +97,12 @@ onMounted(async () => {
                 <div class="muted">{{ s.collegeOfficeUnit }}</div>
               </td>
               <td>{{ typeLabel(s.requestType) }}</td>
-              <td>{{ formatDate(s.submittedAt) }}</td>
+              <td>{{ formatDate(s.uldcApprovedAt) }}</td>
               <td>
                 <span class="status-pill" :class="`pill-${s.status}`">{{ statusLabel(s.status) }}</span>
               </td>
               <td>
-                <NuxtLink :to="`/admin/${s.id}`" class="view-link">View →</NuxtLink>
+                <NuxtLink :to="`/board/${s.id}`" class="view-link">View →</NuxtLink>
               </td>
             </tr>
           </tbody>
@@ -133,16 +132,6 @@ onMounted(async () => {
 .admin-title {
   font-size: 16px;
   font-weight: 700;
-}
-.link-back {
-  color: #fff;
-  background: var(--primary-green);
-  padding: 8px 14px;
-  border-radius: 6px;
-  text-decoration: none;
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
 }
 .admin-topbar-right {
   display: flex;
@@ -230,15 +219,11 @@ onMounted(async () => {
   font-size: 11.5px;
   font-weight: 700;
 }
-.pill-submitted {
-  background: #fff4d6;
-  color: #8a6300;
+.pill-for_board_deliberation {
+  background: #eaf3ff;
+  color: #1a5fb4;
 }
-.pill-returned_for_correction {
-  background: #fde3e3;
-  color: #b00020;
-}
-.pill-approved {
+.pill-board_approved {
   background: #dff5df;
   color: var(--emerald);
 }

@@ -2,15 +2,21 @@
 import { ref } from 'vue'
 import { useAuth } from '~/composables/useAuth'
 
-const { login, isLoggedIn, isAdmin } = useAuth()
+const { login, isLoggedIn, isUldc, isBoard } = useAuth()
 
 const email = ref('')
 const submitting = ref(false)
 const error = ref('')
 
+function destinationFor(role: string): string {
+  if (role === 'uldc') return '/uldc'
+  if (role === 'board') return '/board'
+  return '/my-requests'
+}
+
 onMounted(() => {
   if (isLoggedIn.value) {
-    navigateTo(isAdmin.value ? '/admin' : '/my-requests')
+    navigateTo(isUldc.value ? '/uldc' : isBoard.value ? '/board' : '/my-requests')
   }
 })
 
@@ -21,7 +27,7 @@ async function signIn() {
   error.value = ''
   try {
     const user = await login(value)
-    navigateTo(user.role === 'admin' ? '/admin' : '/my-requests', { replace: true })
+    navigateTo(destinationFor(user.role), { replace: true })
   } catch (e: any) {
     error.value = e?.data?.message || 'Could not sign in. Check your email and try again.'
   } finally {

@@ -27,7 +27,8 @@ export type SubmissionStatus =
   | 'complete'
   | 'submitted'
   | 'returned_for_correction'
-  | 'approved';
+  | 'for_board_deliberation'
+  | 'board_approved';
 
 export interface Submission {
   id: string;
@@ -45,7 +46,8 @@ export interface Submission {
   status: SubmissionStatus;
   submittedAt: string | null;
   returnedAt: string | null;
-  approvedAt: string | null;
+  uldcApprovedAt: string | null;
+  boardApprovedAt: string | null;
   createdAt: string;
   documents: SubmissionDocument[];
 }
@@ -137,9 +139,18 @@ export function useChecklist() {
     });
   }
 
-  // HR/admin — every request that has been formally submitted.
-  async function listSubmittedSubmissions(): Promise<Submission[]> {
-    return $fetch(`${base}/checklist/admin/submitted`, {
+  // ULDC Sub-Committee — every request that has ever been formally
+  // submitted, through its full lifecycle (including after it moves to the Board).
+  async function listUldcSubmissions(): Promise<Submission[]> {
+    return $fetch(`${base}/checklist/uldc/submitted`, {
+      headers: authHeaders(),
+      cache: 'no-store',
+    });
+  }
+
+  // Board — only requests ULDC has already forwarded.
+  async function listBoardSubmissions(): Promise<Submission[]> {
+    return $fetch(`${base}/checklist/board/submitted`, {
       headers: authHeaders(),
       cache: 'no-store',
     });
@@ -153,8 +164,8 @@ export function useChecklist() {
     return `${base}/checklist/submissions/${submissionId}/documents/${itemCode}/file${qs}`;
   }
 
-  // HR/admin — approve or reject a single uploaded document, with an
-  // optional (required-if-rejecting) comment for the employee.
+  // ULDC Sub-Committee — approve or reject a single uploaded document, with
+  // an optional (required-if-rejecting) comment for the employee.
   async function reviewDocument(
     submissionId: string,
     itemCode: string,
@@ -168,7 +179,7 @@ export function useChecklist() {
     });
   }
 
-  // HR/admin — send the request back to the employee (requires 1+ rejected doc).
+  // ULDC Sub-Committee — send the request back to the employee (requires 1+ rejected doc).
   async function returnForCorrection(submissionId: string): Promise<Submission> {
     return $fetch(`${base}/checklist/submissions/${submissionId}/return-for-correction`, {
       method: 'POST',
@@ -176,9 +187,19 @@ export function useChecklist() {
     });
   }
 
-  // HR/admin — final approval, requires every document individually approved.
+  // ULDC Sub-Committee — final screening approval, requires every document
+  // individually approved. Forwards the request to the Board.
   async function approveSubmission(submissionId: string): Promise<Submission> {
     return $fetch(`${base}/checklist/submissions/${submissionId}/approve`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+  }
+
+  // Board — final deliberation action, only valid once ULDC has forwarded
+  // the request (status for_board_deliberation).
+  async function boardApproveSubmission(submissionId: string): Promise<Submission> {
+    return $fetch(`${base}/checklist/submissions/${submissionId}/board-approve`, {
       method: 'POST',
       headers: authHeaders(),
     });
@@ -191,11 +212,13 @@ export function useChecklist() {
     uploadDocument,
     removeDocument,
     submitSubmission,
-    listSubmittedSubmissions,
+    listUldcSubmissions,
+    listBoardSubmissions,
     listMySubmissions,
     getDocumentDownloadUrl,
     reviewDocument,
     returnForCorrection,
     approveSubmission,
+    boardApproveSubmission,
   };
 }

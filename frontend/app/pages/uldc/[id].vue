@@ -4,7 +4,7 @@ import { useRoute } from 'vue-router'
 import { useChecklist, type SubmissionProgress } from '~/composables/useChecklist'
 import { useAuth } from '~/composables/useAuth'
 
-definePageMeta({ middleware: 'admin' })
+definePageMeta({ middleware: 'uldc' })
 
 const route = useRoute()
 const id = route.params.id as string
@@ -29,9 +29,10 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
 const STATUS_LABELS: Record<string, string> = {
   in_progress: 'In Progress',
   complete: 'Ready to Submit',
-  submitted: 'Under HR Screening',
+  submitted: 'Under ULDC Sub-Committee Screening',
   returned_for_correction: 'Returned for Correction',
-  approved: 'Approved',
+  for_board_deliberation: 'For Board Deliberation',
+  board_approved: 'Approved by Board',
 }
 
 const typeLabel = computed(() => {
@@ -42,7 +43,8 @@ const typeLabel = computed(() => {
 const statusLabel = computed(() => STATUS_LABELS[progress.value?.submission.status ?? ''] ?? '')
 const isUnderScreening = computed(() => progress.value?.submission.status === 'submitted')
 const isReturned = computed(() => progress.value?.submission.status === 'returned_for_correction')
-const isApproved = computed(() => progress.value?.submission.status === 'approved')
+const isForBoard = computed(() => progress.value?.submission.status === 'for_board_deliberation')
+const isBoardApproved = computed(() => progress.value?.submission.status === 'board_approved')
 
 function formatDate(value: string | null) {
   if (!value) return '—'
@@ -156,7 +158,7 @@ onMounted(async () => {
     <header class="admin-topbar">
       <div class="admin-title">ULDC Sub-Committee — Request Detail</div>
       <div class="admin-topbar-right">
-        <NuxtLink to="/admin" class="link-back">← All Requests</NuxtLink>
+        <NuxtLink to="/uldc" class="link-back">← All Requests</NuxtLink>
         <span v-if="user" class="session-email">{{ user.email }}</span>
         <button class="logout-btn" @click="logout(); router.push('/login')">Log out</button>
       </div>
@@ -176,7 +178,8 @@ onMounted(async () => {
           <div class="status-row">
             <span class="status-badge" :class="`badge-${progress.submission.status}`">{{ statusLabel }}</span>
             <span v-if="isReturned" class="muted">Sent back {{ formatDateTime(progress.submission.returnedAt) }}</span>
-            <span v-if="isApproved" class="muted">Approved {{ formatDateTime(progress.submission.approvedAt) }}</span>
+            <span v-if="isForBoard || isBoardApproved" class="muted">Approved by ULDC {{ formatDateTime(progress.submission.uldcApprovedAt) }}</span>
+            <span v-if="isBoardApproved" class="muted">Approved by Board {{ formatDateTime(progress.submission.boardApprovedAt) }}</span>
           </div>
 
           <div v-if="isUnderScreening" class="screening-actions">
@@ -191,6 +194,14 @@ onMounted(async () => {
             </div>
             <p v-if="sendBackError" class="item-error">{{ sendBackError }}</p>
             <p v-if="approveError" class="item-error">{{ approveError }}</p>
+          </div>
+
+          <div v-else-if="isForBoard" class="screening-actions">
+            <p class="muted">ULDC has approved every document. This request is now with the Board for final deliberation — no further action needed from ULDC.</p>
+          </div>
+
+          <div v-else-if="isBoardApproved" class="screening-actions">
+            <p class="muted">✓ This request has been approved by the Board. No further action needed.</p>
           </div>
         </section>
 
@@ -482,7 +493,11 @@ onMounted(async () => {
   background: #fde3e3;
   color: #b00020;
 }
-.badge-approved {
+.badge-for_board_deliberation {
+  background: #eaf3ff;
+  color: #1a5fb4;
+}
+.badge-board_approved {
   background: #dff5df;
   color: var(--emerald);
 }

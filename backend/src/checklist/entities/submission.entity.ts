@@ -12,9 +12,10 @@ import { SubmissionDocument } from './submission-document.entity';
 export enum SubmissionStatus {
   IN_PROGRESS = 'in_progress', // employee still uploading
   COMPLETE = 'complete', // all required items uploaded, ready to submit
-  SUBMITTED = 'submitted', // employee pressed Submit — locked, awaiting admin screening
-  RETURNED_FOR_CORRECTION = 'returned_for_correction', // admin rejected 1+ docs, sent back to employee
-  APPROVED = 'approved', // admin approved every document — final state
+  SUBMITTED = 'submitted', // employee pressed Submit — locked, awaiting ULDC Sub-Committee screening
+  RETURNED_FOR_CORRECTION = 'returned_for_correction', // ULDC rejected 1+ docs, sent back to employee
+  FOR_BOARD_DELIBERATION = 'for_board_deliberation', // ULDC approved every document — forwarded to the Board
+  BOARD_APPROVED = 'board_approved', // Board approved — final state
 }
 
 @Entity('submissions')
@@ -70,9 +71,13 @@ export class Submission {
   @Column({ type: 'timestamp', nullable: true })
   returnedAt: Date | null;
 
-  // Set when admin gives final approval (every document reviewed & approved)
+  // Set when ULDC approves every document and forwards the request to the Board
   @Column({ type: 'timestamp', nullable: true })
-  approvedAt: Date | null;
+  uldcApprovedAt: Date | null;
+
+  // Set when the Board gives final approval
+  @Column({ type: 'timestamp', nullable: true })
+  boardApprovedAt: Date | null;
 
   @OneToMany(() => SubmissionDocument, (doc) => doc.submission, { cascade: true })
   documents: SubmissionDocument[];

@@ -60,7 +60,8 @@ const infoComplete = computed(() => {
 const readyToSubmit = computed(() => progress.value?.submission.status === 'complete')
 const isSubmitted = computed(() => progress.value?.submission.status === 'submitted')
 const isReturned = computed(() => progress.value?.submission.status === 'returned_for_correction')
-const isApproved = computed(() => progress.value?.submission.status === 'approved')
+const isForBoard = computed(() => progress.value?.submission.status === 'for_board_deliberation')
+const isBoardApproved = computed(() => progress.value?.submission.status === 'board_approved')
 // Once returned, everything is locked EXCEPT items HR flagged rejected.
 // The file input overwrites a rejected doc in one step (attachDocument
 // handles that server-side), so `doc` normally still exists here — but
@@ -153,7 +154,7 @@ function recalculateProgress() {
   progress.value.percentComplete = progress.value.totalRequired
     ? Math.round((progress.value.totalUploaded / progress.value.totalRequired) * 100)
     : 0
-  const lockedStatuses = ['submitted', 'returned_for_correction', 'approved']
+  const lockedStatuses = ['submitted', 'returned_for_correction', 'for_board_deliberation', 'board_approved']
   if (!lockedStatuses.includes(progress.value.submission.status)) {
     progress.value.submission.status = missingItems.length === 0 ? 'complete' : 'in_progress'
   }
@@ -234,7 +235,7 @@ function docFor(itemCode: string) {
 }
 
 function itemEditable(itemCode: string) {
-  if (isSubmitted.value || isApproved.value) return false
+  if (isSubmitted.value || isForBoard.value || isBoardApproved.value) return false
   if (isReturned.value) return canReupload(itemCode)
   return true
 }
@@ -389,8 +390,12 @@ const groupedItems = computed(() => {
           <div class="progress-bar-fill" :style="{ width: progress.percentComplete + '%' }" />
         </div>
 
-        <div v-if="isApproved" class="complete-banner approved-banner">
-          <p>✓ Request approved{{ progress.submission.approvedAt ? ' on ' + new Date(progress.submission.approvedAt).toLocaleDateString() : '' }}. No further action needed.</p>
+        <div v-if="isBoardApproved" class="complete-banner approved-banner">
+          <p>✓ Request approved by the Board{{ progress.submission.boardApprovedAt ? ' on ' + new Date(progress.submission.boardApprovedAt).toLocaleDateString() : '' }}. No further action needed.</p>
+          <button class="begin-btn" @click="startNewRequest">Back</button>
+        </div>
+        <div v-else-if="isForBoard" class="complete-banner approved-banner">
+          <p>✓ Approved by the ULDC Sub-Committee{{ progress.submission.uldcApprovedAt ? ' on ' + new Date(progress.submission.uldcApprovedAt).toLocaleDateString() : '' }} and forwarded to the Board for final deliberation.</p>
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="isSubmitted" class="complete-banner">
@@ -431,7 +436,7 @@ const groupedItems = computed(() => {
                     {{ docFor(item.code)!.originalFileName }}
                   </span>
                   <span
-                    v-if="(isSubmitted || isReturned || isApproved) && docFor(item.code)"
+                    v-if="(isSubmitted || isReturned || isForBoard || isBoardApproved) && docFor(item.code)"
                     class="review-badge"
                     :class="`review-${docFor(item.code)!.reviewStatus}`"
                   >
