@@ -3,9 +3,9 @@ import { ref, onMounted } from 'vue'
 import { useChecklist, type Submission } from '~/composables/useChecklist'
 import { useAuth } from '~/composables/useAuth'
 
-definePageMeta({ middleware: 'uldc' })
+definePageMeta({ middleware: 'uldc-committee' })
 
-const { listUldcSubmissions } = useChecklist()
+const { listUldcCommitteeSubmissions } = useChecklist()
 const { user, logout } = useAuth()
 const router = useRouter()
 
@@ -23,17 +23,11 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  submitted: 'Under Screening',
-  returned_for_correction: 'Returned for Correction',
-  for_board_deliberation: 'For Board Deliberation',
-  uldc_deliberation: 'Under ULDC Deliberation',
+  uldc_deliberation: 'Under Deliberation',
   for_admin_council: 'For Admin Council',
   for_board_confirmation: 'For Board Confirmation',
   for_president_approval: 'For President Approval',
   president_approved: 'Approved by President',
-  for_president_endorsement: 'For President Endorsement',
-  for_board_approval: 'For Board Approval',
-  board_approved: 'Approved by Board',
 }
 
 function typeLabel(type: string) {
@@ -44,16 +38,16 @@ function statusLabel(status: string) {
   return STATUS_LABELS[status] ?? status
 }
 
-function formatDate(value: string | null) {
+function formatDateTime(value: string | null) {
   if (!value) return '—'
-  return new Date(value).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+  return new Date(value).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 }
 
 onMounted(async () => {
   try {
-    submissions.value = await listUldcSubmissions()
+    submissions.value = await listUldcCommitteeSubmissions()
   } catch (e) {
-    loadError.value = 'Could not load submitted requests. Is the server running?'
+    loadError.value = 'Could not load requests. Is the server running?'
   } finally {
     loading.value = false
   }
@@ -63,9 +57,8 @@ onMounted(async () => {
 <template>
   <div class="admin-shell">
     <header class="admin-topbar">
-      <div class="admin-title">ULDC Sub-Committee — Submitted Requests</div>
+      <div class="admin-title">ULDC Committee — Deliberation Queue</div>
       <div class="admin-topbar-right">
-        <NuxtLink to="/" class="link-back">+ New Request</NuxtLink>
         <span v-if="user" class="session-email">{{ user.email }}</span>
         <button class="logout-btn" @click="logout(); router.push('/login')">Log out</button>
       </div>
@@ -73,7 +66,7 @@ onMounted(async () => {
 
     <main class="admin-body">
       <div v-if="loading" class="admin-card">
-        <p class="muted">Loading submitted requests…</p>
+        <p class="muted">Loading requests…</p>
       </div>
 
       <div v-else-if="loadError" class="admin-card">
@@ -81,7 +74,7 @@ onMounted(async () => {
       </div>
 
       <div v-else-if="submissions.length === 0" class="admin-card">
-        <p class="muted">No requests have been submitted yet.</p>
+        <p class="muted">No requests are currently under ULDC Committee deliberation. This only applies to Foreign Travel (IMP) requests that have passed Sub-Committee screening.</p>
       </div>
 
       <div v-else class="admin-card">
@@ -91,7 +84,7 @@ onMounted(async () => {
               <th>Employee</th>
               <th>Office / Unit</th>
               <th>Request Type</th>
-              <th>Submitted</th>
+              <th>Forwarded by Sub-Committee</th>
               <th>Status</th>
               <th></th>
             </tr>
@@ -108,14 +101,14 @@ onMounted(async () => {
               </td>
               <td>
                 {{ typeLabel(s.requestType) }}
-                <span v-if="s.requestType === 'foreign_travel'" class="imp-tag">{{ s.isImp ? 'IMP' : 'non-IMP' }}</span>
+                <span class="imp-tag">{{ s.isImp ? 'IMP' : 'non-IMP' }}</span>
               </td>
-              <td>{{ formatDate(s.submittedAt) }}</td>
+              <td>{{ formatDateTime(s.uldcApprovedAt) }}</td>
               <td>
                 <span class="status-pill" :class="`pill-${s.status}`">{{ statusLabel(s.status) }}</span>
               </td>
               <td>
-                <NuxtLink :to="`/uldc/${s.id}`" class="view-link">View →</NuxtLink>
+                <NuxtLink :to="`/uldc-committee/${s.id}`" class="view-link">View →</NuxtLink>
               </td>
             </tr>
           </tbody>
@@ -145,16 +138,6 @@ onMounted(async () => {
 .admin-title {
   font-size: 16px;
   font-weight: 700;
-}
-.link-back {
-  color: #fff;
-  background: var(--primary-green);
-  padding: 8px 14px;
-  border-radius: 6px;
-  text-decoration: none;
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
 }
 .admin-topbar-right {
   display: flex;
@@ -242,18 +225,6 @@ onMounted(async () => {
   font-size: 11.5px;
   font-weight: 700;
 }
-.pill-submitted {
-  background: #fff4d6;
-  color: #8a6300;
-}
-.pill-returned_for_correction {
-  background: #fde3e3;
-  color: #b00020;
-}
-.pill-for_board_deliberation {
-  background: #eaf3ff;
-  color: #1a5fb4;
-}
 .pill-uldc_deliberation {
   background: #fff4d6;
   color: #8a6300;
@@ -266,17 +237,11 @@ onMounted(async () => {
   background: #eaf3ff;
   color: #1a5fb4;
 }
-.pill-for_president_approval,
-.pill-for_president_endorsement {
+.pill-for_president_approval {
   background: #fde9d7;
   color: #a05a1a;
 }
-.pill-for_board_approval {
-  background: #eaf3ff;
-  color: #1a5fb4;
-}
-.pill-president_approved,
-.pill-board_approved {
+.pill-president_approved {
   background: #dff5df;
   color: var(--emerald);
 }

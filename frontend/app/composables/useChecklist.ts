@@ -160,8 +160,17 @@ export function useChecklist() {
 
   // ULDC Sub-Committee — every request that has ever been formally
   // submitted, through its full lifecycle (including after it moves to the Board).
-  async function listUldcSubmissions(): Promise<Submission[]> {
-    return $fetch(`${base}/checklist/uldc/submitted`, {
+  async function listUldcSubcommitteeSubmissions(): Promise<Submission[]> {
+    return $fetch(`${base}/checklist/uldc-subcommittee/submitted`, {
+      headers: authHeaders(),
+      cache: 'no-store',
+    });
+  }
+
+  // ULDC Committee (Foreign Travel + IMP only) — requests under full-body
+  // deliberation, plus anything already forwarded further downstream.
+  async function listUldcCommitteeSubmissions(): Promise<Submission[]> {
+    return $fetch(`${base}/checklist/uldc-committee/submitted`, {
       headers: authHeaders(),
       cache: 'no-store',
     });
@@ -240,8 +249,8 @@ export function useChecklist() {
     });
   }
 
-  // Foreign Travel + IMP only — ULDC concludes full-body deliberation,
-  // forwards to Admin Council.
+  // Foreign Travel + IMP only — ULDC Committee concludes full-body
+  // deliberation, forwards to Admin Council.
   async function concludeUldcDeliberation(submissionId: string): Promise<Submission> {
     return $fetch(`${base}/checklist/submissions/${submissionId}/conclude-uldc-deliberation`, {
       method: 'POST',
@@ -289,7 +298,8 @@ export function useChecklist() {
     uploadDocument,
     removeDocument,
     submitSubmission,
-    listUldcSubmissions,
+    listUldcSubcommitteeSubmissions,
+    listUldcCommitteeSubmissions,
     listBoardSubmissions,
     listAdminCouncilSubmissions,
     listPresidentSubmissions,

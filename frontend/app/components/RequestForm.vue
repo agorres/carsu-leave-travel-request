@@ -442,7 +442,7 @@ const groupedItems = computed(() => {
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="isUldcDeliberation" class="complete-banner approved-banner">
-          <p>✓ Approved by the ULDC Sub-Committee{{ progress.submission.uldcApprovedAt ? ' on ' + new Date(progress.submission.uldcApprovedAt).toLocaleDateString() : '' }} and now under full ULDC body deliberation.</p>
+          <p>✓ Approved by the ULDC Sub-Committee{{ progress.submission.uldcApprovedAt ? ' on ' + new Date(progress.submission.uldcApprovedAt).toLocaleDateString() : '' }} and now under full ULDC Committee deliberation.</p>
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="isForBoard" class="complete-banner approved-banner">

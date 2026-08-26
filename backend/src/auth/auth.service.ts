@@ -10,10 +10,20 @@ const SESSION_TTL = '7d';
 // Anyone whose email is on one of these lists gets that reviewer role on
 // login; a missing env var just means "no one in that role yet" rather
 // than "everyone qualifies" — fail closed. If an email somehow ends up on
-// both lists, ULDC takes precedence.
-function uldcEmailSet(): Set<string> {
+// more than one list, precedence is: Sub-Committee > Committee > Board >
+// Admin Council > President.
+function uldcSubcommitteeEmailSet(): Set<string> {
   return new Set(
-    (process.env.ULDC_EMAILS ?? '')
+    (process.env.ULDC_SUBCOMMITTEE_EMAILS ?? '')
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
+function uldcCommitteeEmailSet(): Set<string> {
+  return new Set(
+    (process.env.ULDC_COMMITTEE_EMAILS ?? '')
       .split(',')
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean),
@@ -80,15 +90,17 @@ export class AuthService {
       );
     }
 
-    const role = uldcEmailSet().has(email)
-      ? UserRole.ULDC
-      : boardEmailSet().has(email)
-        ? UserRole.BOARD
-        : adminCouncilEmailSet().has(email)
-          ? UserRole.ADMIN_COUNCIL
-          : presidentEmailSet().has(email)
-            ? UserRole.PRESIDENT
-            : UserRole.EMPLOYEE;
+    const role = uldcSubcommitteeEmailSet().has(email)
+      ? UserRole.ULDC_SUBCOMMITTEE
+      : uldcCommitteeEmailSet().has(email)
+        ? UserRole.ULDC_COMMITTEE
+        : boardEmailSet().has(email)
+          ? UserRole.BOARD
+          : adminCouncilEmailSet().has(email)
+            ? UserRole.ADMIN_COUNCIL
+            : presidentEmailSet().has(email)
+              ? UserRole.PRESIDENT
+              : UserRole.EMPLOYEE;
 
     let user = await this.userRepo.findOne({ where: { email } });
     if (!user) {

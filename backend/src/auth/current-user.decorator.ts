@@ -2,7 +2,7 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
 export interface CurrentUserPayload {
   email: string;
-  role: 'employee' | 'uldc' | 'board' | 'admin_council' | 'president';
+  role: 'employee' | 'uldc_subcommittee' | 'uldc_committee' | 'board' | 'admin_council' | 'president';
 }
 
 // Requires JwtAuthGuard to have run first (sets req.user).

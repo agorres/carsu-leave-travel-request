@@ -118,7 +118,7 @@ export class ChecklistService {
    * lifecycle even after it leaves their hands, whichever flow it's on).
    * Requests still IN_PROGRESS/COMPLETE (not yet submitted) never appear.
    */
-  async listUldcSubmissions(): Promise<Submission[]> {
+  async listUldcSubcommitteeSubmissions(): Promise<Submission[]> {
     return this.submissionRepo.find({
       where: {
         status: In([
@@ -137,6 +137,27 @@ export class ChecklistService {
       },
       relations: { documents: true },
       order: { submittedAt: 'DESC' },
+    });
+  }
+
+  /**
+   * ULDC Committee view (Foreign Travel + IMP only): requests currently
+   * under full-body deliberation, plus anything the Committee has already
+   * forwarded further downstream, for tracking.
+   */
+  async listUldcCommitteeSubmissions(): Promise<Submission[]> {
+    return this.submissionRepo.find({
+      where: {
+        status: In([
+          SubmissionStatus.ULDC_DELIBERATION,
+          SubmissionStatus.FOR_ADMIN_COUNCIL,
+          SubmissionStatus.FOR_BOARD_CONFIRMATION,
+          SubmissionStatus.FOR_PRESIDENT_APPROVAL,
+          SubmissionStatus.PRESIDENT_APPROVED,
+        ]),
+      },
+      relations: { documents: true },
+      order: { uldcDeliberationAt: 'DESC' },
     });
   }
 

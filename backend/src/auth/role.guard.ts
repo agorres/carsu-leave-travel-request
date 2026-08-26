@@ -3,7 +3,7 @@ import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@
 // All guards must run AFTER JwtAuthGuard (they rely on req.user already
 // being set). Usage: @UseGuards(JwtAuthGuard, ReviewerGuard)
 
-const REVIEWER_ROLES = ['uldc', 'board', 'admin_council', 'president'];
+const REVIEWER_ROLES = ['uldc_subcommittee', 'uldc_committee', 'board', 'admin_council', 'president'];
 
 // Any reviewer role — used for actions/views every reviewing body is
 // allowed to reach (e.g. viewing a submission's detail page and its
@@ -20,14 +20,28 @@ export class ReviewerGuard implements CanActivate {
   }
 }
 
-// ULDC-only — document screening actions (approve/reject individual
-// documents, send back for correction, forward to the next stage).
+// ULDC Sub-Committee-only — document screening actions (approve/reject
+// individual documents, send back for correction, forward to the next
+// stage).
 @Injectable()
-export class UldcGuard implements CanActivate {
+export class UldcSubcommitteeGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
-    if (request.user?.role !== 'uldc') {
+    if (request.user?.role !== 'uldc_subcommittee') {
       throw new ForbiddenException('ULDC Sub-Committee access required');
+    }
+    return true;
+  }
+}
+
+// ULDC Committee-only — full-body deliberation action. Today this is only
+// reachable on the Foreign Travel + IMP path (SubmissionStatus.ULDC_DELIBERATION).
+@Injectable()
+export class UldcCommitteeGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest();
+    if (request.user?.role !== 'uldc_committee') {
+      throw new ForbiddenException('ULDC Committee access required');
     }
     return true;
   }

@@ -22,7 +22,7 @@ import { ReviewDocumentDto } from './dto/review-document.dto';
 import { RequestType } from './request-type.enum';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { ReviewerGuard, UldcGuard, BoardGuard, AdminCouncilGuard, PresidentGuard } from '../auth/role.guard';
+import { ReviewerGuard, UldcSubcommitteeGuard, UldcCommitteeGuard, BoardGuard, AdminCouncilGuard, PresidentGuard } from '../auth/role.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/current-user.decorator';
 
@@ -70,10 +70,18 @@ export class ChecklistController {
 
   // ULDC Sub-Committee view — every request that has ever been formally
   // submitted, through the full pipeline (including after it moves to the Board).
-  @UseGuards(UldcGuard)
-  @Get('uldc/submitted')
-  listUldcSubmissions() {
-    return this.checklistService.listUldcSubmissions();
+  @UseGuards(UldcSubcommitteeGuard)
+  @Get('uldc-subcommittee/submitted')
+  listUldcSubcommitteeSubmissions() {
+    return this.checklistService.listUldcSubcommitteeSubmissions();
+  }
+
+  // ULDC Committee view (Foreign Travel + IMP only) — requests under full-
+  // body deliberation, plus anything already forwarded further downstream.
+  @UseGuards(UldcCommitteeGuard)
+  @Get('uldc-committee/submitted')
+  listUldcCommitteeSubmissions() {
+    return this.checklistService.listUldcCommitteeSubmissions();
   }
 
   // Board view — only requests ULDC has already forwarded.
@@ -161,7 +169,7 @@ export class ChecklistController {
 
   // --- ULDC Sub-Committee document screening actions ---
 
-  @UseGuards(UldcGuard)
+  @UseGuards(UldcSubcommitteeGuard)
   @Post('submissions/:id/documents/:itemCode/review')
   reviewDocument(
     @Param('id') submissionId: string,
@@ -171,21 +179,23 @@ export class ChecklistController {
     return this.checklistService.reviewDocument(submissionId, itemCode, dto);
   }
 
-  @UseGuards(UldcGuard)
+  @UseGuards(UldcSubcommitteeGuard)
   @Post('submissions/:id/return-for-correction')
   returnForCorrection(@Param('id') id: string) {
     return this.checklistService.returnForCorrection(id);
   }
 
-  @UseGuards(UldcGuard)
+  @UseGuards(UldcSubcommitteeGuard)
   @Post('submissions/:id/approve')
   approveSubmission(@Param('id') id: string) {
     return this.checklistService.approveSubmission(id);
   }
 
-  // Foreign Travel + IMP only — ULDC concludes full-body deliberation and
-  // forwards to Admin Council.
-  @UseGuards(UldcGuard)
+  // --- ULDC Committee action ---
+
+  // Foreign Travel + IMP only — ULDC Committee concludes full-body
+  // deliberation and forwards to Admin Council.
+  @UseGuards(UldcCommitteeGuard)
   @Post('submissions/:id/conclude-uldc-deliberation')
   concludeUldcDeliberation(@Param('id') id: string) {
     return this.checklistService.concludeUldcDeliberation(id);
@@ -235,7 +245,7 @@ export class ChecklistController {
   // Employees can only touch their own submissions; any reviewer role
   // can touch/view any submission.
   private async assertOwnerOrAdmin(submissionId: string, user: CurrentUserPayload) {
-    const reviewerRoles = ['uldc', 'board', 'admin_council', 'president'];
+    const reviewerRoles = ['uldc_subcommittee', 'uldc_committee', 'board', 'admin_council', 'president'];
     if (reviewerRoles.includes(user.role)) return;
     const submission = await this.checklistService.getSubmission(submissionId);
     if (submission.employeeEmail !== user.email) {
