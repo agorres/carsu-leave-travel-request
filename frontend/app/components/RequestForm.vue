@@ -413,62 +413,6 @@ const groupedItems = computed(() => {
           <div class="progress-bar-fill" :style="{ width: progress.percentComplete + '%' }" />
         </div>
 
-        <div v-if="isPresidentApproved" class="complete-banner approved-banner">
-          <p>✓ Request approved by the President{{ progress.submission.presidentApprovedAt ? ' on ' + new Date(progress.submission.presidentApprovedAt).toLocaleDateString() : '' }}. No further action needed.</p>
-          <button class="begin-btn" @click="startNewRequest">Back</button>
-        </div>
-        <div v-else-if="isBoardApproved" class="complete-banner approved-banner">
-          <p>✓ Request approved by the Board{{ progress.submission.boardApprovedAt ? ' on ' + new Date(progress.submission.boardApprovedAt).toLocaleDateString() : '' }}. No further action needed.</p>
-          <button class="begin-btn" @click="startNewRequest">Back</button>
-        </div>
-        <div v-else-if="isForPresidentApproval" class="complete-banner approved-banner">
-          <p>✓ Confirmed by the Board{{ progress.submission.boardConfirmedAt ? ' on ' + new Date(progress.submission.boardConfirmedAt).toLocaleDateString() : '' }} and forwarded to the President for final approval.</p>
-          <button class="begin-btn" @click="startNewRequest">Back</button>
-        </div>
-        <div v-else-if="isForBoardApproval" class="complete-banner approved-banner">
-          <p>✓ Endorsed by the President{{ progress.submission.presidentEndorsedAt ? ' on ' + new Date(progress.submission.presidentEndorsedAt).toLocaleDateString() : '' }} and forwarded to the Board for final approval.</p>
-          <button class="begin-btn" @click="startNewRequest">Back</button>
-        </div>
-        <div v-else-if="isForBoardConfirmation" class="complete-banner approved-banner">
-          <p>✓ Endorsed by the Admin Council{{ progress.submission.adminCouncilEndorsedAt ? ' on ' + new Date(progress.submission.adminCouncilEndorsedAt).toLocaleDateString() : '' }} and forwarded to the Board for confirmation.</p>
-          <button class="begin-btn" @click="startNewRequest">Back</button>
-        </div>
-        <div v-else-if="isForPresidentEndorsement" class="complete-banner approved-banner">
-          <p>✓ Endorsed by the Admin Council{{ progress.submission.adminCouncilEndorsedAt ? ' on ' + new Date(progress.submission.adminCouncilEndorsedAt).toLocaleDateString() : '' }} and forwarded to the President for endorsement.</p>
-          <button class="begin-btn" @click="startNewRequest">Back</button>
-        </div>
-        <div v-else-if="isForAdminCouncil" class="complete-banner approved-banner">
-          <p>✓ Approved by the ULDC Sub-Committee and forwarded to the Admin Council for endorsement.</p>
-          <button class="begin-btn" @click="startNewRequest">Back</button>
-        </div>
-        <div v-else-if="isUldcDeliberation" class="complete-banner approved-banner">
-          <p>✓ Approved by the ULDC Sub-Committee{{ progress.submission.uldcApprovedAt ? ' on ' + new Date(progress.submission.uldcApprovedAt).toLocaleDateString() : '' }} and now under full ULDC Committee deliberation.</p>
-          <button class="begin-btn" @click="startNewRequest">Back</button>
-        </div>
-        <div v-else-if="isForBoard" class="complete-banner approved-banner">
-          <p>✓ Approved by the ULDC Sub-Committee{{ progress.submission.uldcApprovedAt ? ' on ' + new Date(progress.submission.uldcApprovedAt).toLocaleDateString() : '' }} and forwarded to the Board for final deliberation.</p>
-          <button class="begin-btn" @click="startNewRequest">Back</button>
-        </div>
-        <div v-else-if="isSubmitted" class="complete-banner">
-          <p>✓ Request submitted{{ progress.submission.submittedAt ? ' on ' + new Date(progress.submission.submittedAt).toLocaleDateString() : '' }} and under ULDC Sub-Committee screening. This request is locked until the ULDC Sub-Committee responds.</p>
-          <button class="begin-btn" @click="startNewRequest">Back</button>
-        </div>
-        <div v-else-if="isReturned" class="returned-banner">
-          <p><strong>The ULDC Sub-Committee sent this request back for correction.</strong> Fix the flagged document(s) below — everything else stays as-is — then resubmit.</p>
-          <button class="begin-btn" :disabled="!readyToResubmit || submitting" @click="resubmitRequest">
-            {{ submitting ? 'Resubmitting…' : 'Resubmit Request' }}
-          </button>
-          <p v-if="!readyToResubmit" class="ready-note">Re-upload every flagged document to enable resubmission.</p>
-          <p v-if="submitError" class="item-error">{{ submitError }}</p>
-        </div>
-        <div v-else-if="readyToSubmit" class="submit-row">
-          <p class="ready-note">All required documents are uploaded. Review them above, then submit your request.</p>
-          <button class="begin-btn" :disabled="submitting" @click="submitRequest">
-            {{ submitting ? 'Submitting…' : 'Submit Request' }}
-          </button>
-          <p v-if="submitError" class="item-error">{{ submitError }}</p>
-        </div>
-
         <div v-for="(group, gi) in groupedItems" :key="gi" class="group">
           <div v-if="group.label" class="group-title">{{ group.label }}</div>
 
@@ -515,6 +459,62 @@ const groupedItems = computed(() => {
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <div v-if="isPresidentApproved" class="complete-banner approved-banner">
+          <p>✓ Request approved by the President{{ progress.submission.presidentApprovedAt ? ' on ' + new Date(progress.submission.presidentApprovedAt).toLocaleDateString() : '' }}. No further action needed.</p>
+          <button class="begin-btn" @click="startNewRequest">Back</button>
+        </div>
+        <div v-else-if="isBoardApproved" class="complete-banner approved-banner">
+          <p>✓ Request approved by the Board{{ progress.submission.boardApprovedAt ? ' on ' + new Date(progress.submission.boardApprovedAt).toLocaleDateString() : '' }}. No further action needed.</p>
+          <button class="begin-btn" @click="startNewRequest">Back</button>
+        </div>
+        <div v-else-if="isForPresidentApproval" class="complete-banner approved-banner">
+          <p>✓ Confirmed by the Board{{ progress.submission.boardConfirmedAt ? ' on ' + new Date(progress.submission.boardConfirmedAt).toLocaleDateString() : '' }} and forwarded to the President for final approval.</p>
+          <button class="begin-btn" @click="startNewRequest">Back</button>
+        </div>
+        <div v-else-if="isForBoardApproval" class="complete-banner approved-banner">
+          <p>✓ Endorsed by the President{{ progress.submission.presidentEndorsedAt ? ' on ' + new Date(progress.submission.presidentEndorsedAt).toLocaleDateString() : '' }} and forwarded to the Board for final approval.</p>
+          <button class="begin-btn" @click="startNewRequest">Back</button>
+        </div>
+        <div v-else-if="isForBoardConfirmation" class="complete-banner approved-banner">
+          <p>✓ Endorsed by the Admin Council{{ progress.submission.adminCouncilEndorsedAt ? ' on ' + new Date(progress.submission.adminCouncilEndorsedAt).toLocaleDateString() : '' }} and forwarded to the Board for confirmation.</p>
+          <button class="begin-btn" @click="startNewRequest">Back</button>
+        </div>
+        <div v-else-if="isForPresidentEndorsement" class="complete-banner approved-banner">
+          <p>✓ Endorsed by the Admin Council{{ progress.submission.adminCouncilEndorsedAt ? ' on ' + new Date(progress.submission.adminCouncilEndorsedAt).toLocaleDateString() : '' }} and forwarded to the President for endorsement.</p>
+          <button class="begin-btn" @click="startNewRequest">Back</button>
+        </div>
+        <div v-else-if="isForAdminCouncil" class="complete-banner approved-banner">
+          <p>✓ Approved by the ULDC Sub-Committee and forwarded to the Admin Council for endorsement.</p>
+          <button class="begin-btn" @click="startNewRequest">Back</button>
+        </div>
+        <div v-else-if="isUldcDeliberation" class="complete-banner approved-banner">
+          <p>✓ Approved by the ULDC Sub-Committee{{ progress.submission.uldcApprovedAt ? ' on ' + new Date(progress.submission.uldcApprovedAt).toLocaleDateString() : '' }} and now under full ULDC Committee deliberation.</p>
+          <button class="begin-btn" @click="startNewRequest">Back</button>
+        </div>
+        <div v-else-if="isForBoard" class="complete-banner approved-banner">
+          <p>✓ Approved by the ULDC Sub-Committee{{ progress.submission.uldcApprovedAt ? ' on ' + new Date(progress.submission.uldcApprovedAt).toLocaleDateString() : '' }} and forwarded to the Board for final deliberation.</p>
+          <button class="begin-btn" @click="startNewRequest">Back</button>
+        </div>
+        <div v-else-if="isSubmitted" class="complete-banner">
+          <p>✓ Request submitted{{ progress.submission.submittedAt ? ' on ' + new Date(progress.submission.submittedAt).toLocaleDateString() : '' }} and under ULDC Sub-Committee screening. This request is locked until the ULDC Sub-Committee responds.</p>
+          <button class="begin-btn" @click="startNewRequest">Back</button>
+        </div>
+        <div v-else-if="isReturned" class="returned-banner">
+          <p><strong>The ULDC Sub-Committee sent this request back for correction.</strong> Fix the flagged document(s) above — everything else stays as-is — then resubmit.</p>
+          <button class="begin-btn" :disabled="!readyToResubmit || submitting" @click="resubmitRequest">
+            {{ submitting ? 'Resubmitting…' : 'Resubmit Request' }}
+          </button>
+          <p v-if="!readyToResubmit" class="ready-note">Re-upload every flagged document to enable resubmission.</p>
+          <p v-if="submitError" class="item-error">{{ submitError }}</p>
+        </div>
+        <div v-else-if="readyToSubmit" class="submit-row">
+          <p class="ready-note">All required documents are uploaded. Review them above, then submit your request.</p>
+          <button class="begin-btn" :disabled="submitting" @click="submitRequest">
+            {{ submitting ? 'Submitting…' : 'Submit Request' }}
+          </button>
+          <p v-if="submitError" class="item-error">{{ submitError }}</p>
         </div>
       </section>
       </template>
