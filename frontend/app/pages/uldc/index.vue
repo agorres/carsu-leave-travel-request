@@ -19,12 +19,20 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
   personal_travel: 'Personal Travel',
   sabbatical_leave: 'Sabbatical Leave',
   study_leave_extension: 'Study Leave Extension',
+  local_travel: 'Local Travel (w/ Funding)',
 }
 
 const STATUS_LABELS: Record<string, string> = {
   submitted: 'Under Screening',
   returned_for_correction: 'Returned for Correction',
   for_board_deliberation: 'For Board Deliberation',
+  uldc_deliberation: 'Under ULDC Deliberation',
+  for_admin_council: 'For Admin Council',
+  for_board_confirmation: 'For Board Confirmation',
+  for_president_approval: 'For President Approval',
+  president_approved: 'Approved by President',
+  for_president_endorsement: 'For President Endorsement',
+  for_board_approval: 'For Board Approval',
   board_approved: 'Approved by Board',
 }
 
@@ -98,7 +106,10 @@ onMounted(async () => {
                 <div>{{ s.officeAffiliation }}</div>
                 <div class="muted">{{ s.collegeOfficeUnit }}</div>
               </td>
-              <td>{{ typeLabel(s.requestType) }}</td>
+              <td>
+                {{ typeLabel(s.requestType) }}
+                <span v-if="s.requestType === 'foreign_travel'" class="imp-tag">{{ s.isImp ? 'IMP' : 'non-IMP' }}</span>
+              </td>
               <td>{{ formatDate(s.submittedAt) }}</td>
               <td>
                 <span class="status-pill" :class="`pill-${s.status}`">{{ statusLabel(s.status) }}</span>
@@ -243,8 +254,40 @@ onMounted(async () => {
   background: #eaf3ff;
   color: #1a5fb4;
 }
+.pill-uldc_deliberation {
+  background: #fff4d6;
+  color: #8a6300;
+}
+.pill-for_admin_council {
+  background: #f1e8fd;
+  color: #5a2ca0;
+}
+.pill-for_board_confirmation {
+  background: #eaf3ff;
+  color: #1a5fb4;
+}
+.pill-for_president_approval,
+.pill-for_president_endorsement {
+  background: #fde9d7;
+  color: #a05a1a;
+}
+.pill-for_board_approval {
+  background: #eaf3ff;
+  color: #1a5fb4;
+}
+.pill-president_approved,
 .pill-board_approved {
   background: #dff5df;
   color: var(--emerald);
+}
+.imp-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  background: #f1e8fd;
+  color: #5a2ca0;
 }
 </style>

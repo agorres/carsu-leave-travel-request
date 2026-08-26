@@ -22,7 +22,7 @@ import { ReviewDocumentDto } from './dto/review-document.dto';
 import { RequestType } from './request-type.enum';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { ReviewerGuard, UldcGuard, BoardGuard } from '../auth/role.guard';
+import { ReviewerGuard, UldcGuard, BoardGuard, AdminCouncilGuard, PresidentGuard } from '../auth/role.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/current-user.decorator';
 
@@ -81,6 +81,22 @@ export class ChecklistController {
   @Get('board/submitted')
   listBoardSubmissions() {
     return this.checklistService.listBoardSubmissions();
+  }
+
+  // Admin Council view (Foreign Travel only) — requests ULDC has forwarded
+  // for endorsement.
+  @UseGuards(AdminCouncilGuard)
+  @Get('admin-council/submitted')
+  listAdminCouncilSubmissions() {
+    return this.checklistService.listAdminCouncilSubmissions();
+  }
+
+  // President view (Foreign Travel only) — requests awaiting endorsement
+  // (non-IMP) or final approval (IMP).
+  @UseGuards(PresidentGuard)
+  @Get('president/submitted')
+  listPresidentSubmissions() {
+    return this.checklistService.listPresidentSubmissions();
   }
 
   @Get('submissions/:id/documents/:itemCode/file')
@@ -167,18 +183,60 @@ export class ChecklistController {
     return this.checklistService.approveSubmission(id);
   }
 
-  // Board's final deliberation action — only valid once ULDC has forwarded
-  // the request (status FOR_BOARD_DELIBERATION). Separate role/login from ULDC.
+  // Foreign Travel + IMP only — ULDC concludes full-body deliberation and
+  // forwards to Admin Council.
+  @UseGuards(UldcGuard)
+  @Post('submissions/:id/conclude-uldc-deliberation')
+  concludeUldcDeliberation(@Param('id') id: string) {
+    return this.checklistService.concludeUldcDeliberation(id);
+  }
+
+  // --- Admin Council action (Foreign Travel only) ---
+
+  @UseGuards(AdminCouncilGuard)
+  @Post('submissions/:id/admin-council-endorse')
+  adminCouncilEndorse(@Param('id') id: string) {
+    return this.checklistService.adminCouncilEndorse(id);
+  }
+
+  // --- President actions (Foreign Travel only) ---
+
+  // Foreign Travel + IMP only — final approval.
+  @UseGuards(PresidentGuard)
+  @Post('submissions/:id/president-approve')
+  presidentApprove(@Param('id') id: string) {
+    return this.checklistService.presidentApprove(id);
+  }
+
+  // Foreign Travel + non-IMP only — endorsement, forwards to the Board.
+  @UseGuards(PresidentGuard)
+  @Post('submissions/:id/president-endorse')
+  presidentEndorse(@Param('id') id: string) {
+    return this.checklistService.presidentEndorse(id);
+  }
+
+  // --- Board actions ---
+
+  // Foreign Travel + IMP only — confirmation, forwards to the President.
+  @UseGuards(BoardGuard)
+  @Post('submissions/:id/board-confirm')
+  boardConfirm(@Param('id') id: string) {
+    return this.checklistService.boardConfirm(id);
+  }
+
+  // Final approval — valid from the standard flow (every non-Foreign-Travel
+  // type) or Foreign Travel + non-IMP (after the President endorses).
   @UseGuards(BoardGuard)
   @Post('submissions/:id/board-approve')
   boardApprove(@Param('id') id: string) {
     return this.checklistService.boardApprove(id);
   }
 
-  // Employees can only touch their own submissions; either reviewer role
-  // (ULDC or Board) can touch/view any submission.
+  // Employees can only touch their own submissions; any reviewer role
+  // can touch/view any submission.
   private async assertOwnerOrAdmin(submissionId: string, user: CurrentUserPayload) {
-    if (user.role === 'uldc' || user.role === 'board') return;
+    const reviewerRoles = ['uldc', 'board', 'admin_council', 'president'];
+    if (reviewerRoles.includes(user.role)) return;
     const submission = await this.checklistService.getSubmission(submissionId);
     if (submission.employeeEmail !== user.email) {
       throw new ForbiddenException('You do not have access to this request');

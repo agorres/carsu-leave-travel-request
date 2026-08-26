@@ -4,11 +4,14 @@ export enum UserRole {
   EMPLOYEE = 'employee',
   ULDC = 'uldc',
   BOARD = 'board',
+  ADMIN_COUNCIL = 'admin_council',
+  PRESIDENT = 'president',
 }
 
 // Created/updated the first time someone completes a magic-link login.
-// Role is derived from ULDC_EMAILS / BOARD_EMAILS at login time, so
-// promoting/demoting a reviewer is just an env var change (see auth.service.ts).
+// Role is derived from ULDC_EMAILS / BOARD_EMAILS / ADMIN_COUNCIL_EMAILS /
+// PRESIDENT_EMAILS at login time, so promoting/demoting a reviewer is just
+// an env var change (see auth.service.ts).
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')

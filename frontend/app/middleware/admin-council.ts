@@ -3,12 +3,12 @@ import { roleHomePath } from '~/utils/role-home'
 
 export default defineNuxtRouteMiddleware(() => {
   if (!import.meta.client) return
-  const { init, isLoggedIn, isBoard, user } = useAuth()
+  const { init, isLoggedIn, isAdminCouncil, user } = useAuth()
   init()
   if (!isLoggedIn.value) {
     return navigateTo('/login')
   }
-  if (!isBoard.value) {
+  if (!isAdminCouncil.value) {
     return navigateTo(roleHomePath(user.value?.role))
   }
 })

@@ -10,7 +10,7 @@ const route = useRoute()
 const id = route.params.id as string
 const router = useRouter()
 
-const { getProgress, getDocumentDownloadUrl, reviewDocument, returnForCorrection, approveSubmission } = useChecklist()
+const { getProgress, getDocumentDownloadUrl, reviewDocument, returnForCorrection, approveSubmission, concludeUldcDeliberation } = useChecklist()
 const { user, logout } = useAuth()
 
 const progress = ref<SubmissionProgress | null>(null)
@@ -32,6 +32,13 @@ const STATUS_LABELS: Record<string, string> = {
   submitted: 'Under ULDC Sub-Committee Screening',
   returned_for_correction: 'Returned for Correction',
   for_board_deliberation: 'For Board Deliberation',
+  uldc_deliberation: 'Under ULDC Deliberation',
+  for_admin_council: 'For Admin Council',
+  for_board_confirmation: 'For Board Confirmation',
+  for_president_approval: 'For President Approval',
+  president_approved: 'Approved by President',
+  for_president_endorsement: 'For President Endorsement',
+  for_board_approval: 'For Board Approval',
   board_approved: 'Approved by Board',
 }
 
@@ -45,6 +52,12 @@ const isUnderScreening = computed(() => progress.value?.submission.status === 's
 const isReturned = computed(() => progress.value?.submission.status === 'returned_for_correction')
 const isForBoard = computed(() => progress.value?.submission.status === 'for_board_deliberation')
 const isBoardApproved = computed(() => progress.value?.submission.status === 'board_approved')
+const isUldcDeliberation = computed(() => progress.value?.submission.status === 'uldc_deliberation')
+const isPastUldc = computed(() => {
+  const s = progress.value?.submission.status
+  return s === 'for_admin_council' || s === 'for_board_confirmation' || s === 'for_president_approval' ||
+    s === 'president_approved' || s === 'for_president_endorsement' || s === 'for_board_approval' || s === 'board_approved'
+})
 
 function formatDate(value: string | null) {
   if (!value) return '—'
@@ -142,6 +155,21 @@ async function onApprove() {
   }
 }
 
+const concluding = ref(false)
+const concludeError = ref('')
+async function onConcludeDeliberation() {
+  concluding.value = true
+  concludeError.value = ''
+  try {
+    const updated = await concludeUldcDeliberation(id)
+    if (progress.value) progress.value.submission = { ...progress.value.submission, ...updated }
+  } catch (e: any) {
+    concludeError.value = e?.data?.message || 'Could not forward this request.'
+  } finally {
+    concluding.value = false
+  }
+}
+
 onMounted(async () => {
   try {
     progress.value = await getProgress(id)
@@ -178,7 +206,7 @@ onMounted(async () => {
           <div class="status-row">
             <span class="status-badge" :class="`badge-${progress.submission.status}`">{{ statusLabel }}</span>
             <span v-if="isReturned" class="muted">Sent back {{ formatDateTime(progress.submission.returnedAt) }}</span>
-            <span v-if="isForBoard || isBoardApproved" class="muted">Approved by ULDC {{ formatDateTime(progress.submission.uldcApprovedAt) }}</span>
+            <span v-if="isForBoard || isUldcDeliberation || isPastUldc || isBoardApproved" class="muted">Approved by ULDC {{ formatDateTime(progress.submission.uldcApprovedAt) }}</span>
             <span v-if="isBoardApproved" class="muted">Approved by Board {{ formatDateTime(progress.submission.boardApprovedAt) }}</span>
           </div>
 
@@ -200,8 +228,22 @@ onMounted(async () => {
             <p class="muted">ULDC has approved every document. This request is now with the Board for final deliberation — no further action needed from ULDC.</p>
           </div>
 
+          <div v-else-if="isUldcDeliberation" class="screening-actions">
+            <p class="muted">This Foreign Travel (IMP) request has passed initial screening and is under full ULDC body deliberation. Once deliberation concludes, forward it to the Admin Council.</p>
+            <div class="action-buttons">
+              <button class="action-btn primary" :disabled="concluding" @click="onConcludeDeliberation">
+                {{ concluding ? 'Forwarding…' : 'Conclude Deliberation — Forward to Admin Council' }}
+              </button>
+            </div>
+            <p v-if="concludeError" class="item-error">{{ concludeError }}</p>
+          </div>
+
           <div v-else-if="isBoardApproved" class="screening-actions">
             <p class="muted">✓ This request has been approved by the Board. No further action needed.</p>
+          </div>
+
+          <div v-else-if="isPastUldc" class="screening-actions">
+            <p class="muted">This request has moved past ULDC and is now with {{ statusLabel }} — no further action needed from ULDC.</p>
           </div>
         </section>
 
@@ -497,6 +539,28 @@ onMounted(async () => {
   background: #eaf3ff;
   color: #1a5fb4;
 }
+.badge-uldc_deliberation {
+  background: #fff4d6;
+  color: #8a6300;
+}
+.badge-for_admin_council {
+  background: #f1e8fd;
+  color: #5a2ca0;
+}
+.badge-for_board_confirmation {
+  background: #eaf3ff;
+  color: #1a5fb4;
+}
+.badge-for_president_approval,
+.badge-for_president_endorsement {
+  background: #fde9d7;
+  color: #a05a1a;
+}
+.badge-for_board_approval {
+  background: #eaf3ff;
+  color: #1a5fb4;
+}
+.badge-president_approved,
 .badge-board_approved {
   background: #dff5df;
   color: var(--emerald);

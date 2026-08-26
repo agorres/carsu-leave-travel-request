@@ -9,6 +9,12 @@ export class CreateSubmissionDto {
   @IsBoolean()
   isAbroad?: boolean;
 
+  // Foreign Travel requests only — whether the travel is IMP. Ignored
+  // for every other request type.
+  @IsOptional()
+  @IsBoolean()
+  isImp?: boolean;
+
   @IsString()
   @MinLength(2)
   employeeName: string;

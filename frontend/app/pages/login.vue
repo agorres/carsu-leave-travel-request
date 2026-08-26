@@ -1,22 +1,17 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useAuth } from '~/composables/useAuth'
+import { roleHomePath } from '~/utils/role-home'
 
-const { login, isLoggedIn, isUldc, isBoard } = useAuth()
+const { login, isLoggedIn, user } = useAuth()
 
 const email = ref('')
 const submitting = ref(false)
 const error = ref('')
 
-function destinationFor(role: string): string {
-  if (role === 'uldc') return '/uldc'
-  if (role === 'board') return '/board'
-  return '/my-requests'
-}
-
 onMounted(() => {
   if (isLoggedIn.value) {
-    navigateTo(isUldc.value ? '/uldc' : isBoard.value ? '/board' : '/my-requests')
+    navigateTo(roleHomePath(user.value?.role))
   }
 })
 
@@ -26,8 +21,8 @@ async function signIn() {
   submitting.value = true
   error.value = ''
   try {
-    const user = await login(value)
-    navigateTo(destinationFor(user.role), { replace: true })
+    const signedInUser = await login(value)
+    navigateTo(roleHomePath(signedInUser.role), { replace: true })
   } catch (e: any) {
     error.value = e?.data?.message || 'Could not sign in. Check your email and try again.'
   } finally {

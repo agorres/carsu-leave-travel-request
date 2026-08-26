@@ -4,13 +4,13 @@ import { useRoute } from 'vue-router'
 import { useChecklist, type SubmissionProgress } from '~/composables/useChecklist'
 import { useAuth } from '~/composables/useAuth'
 
-definePageMeta({ middleware: 'board' })
+definePageMeta({ middleware: 'president' })
 
 const route = useRoute()
 const id = route.params.id as string
 const router = useRouter()
 
-const { getProgress, getDocumentDownloadUrl, boardApproveSubmission, boardConfirm } = useChecklist()
+const { getProgress, getDocumentDownloadUrl, presidentApprove, presidentEndorse } = useChecklist()
 const { user, logout } = useAuth()
 
 const progress = ref<SubmissionProgress | null>(null)
@@ -27,11 +27,10 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  for_board_deliberation: 'For Board Deliberation',
-  for_board_confirmation: 'For Board Confirmation',
-  for_president_approval: 'Confirmed — With President',
+  for_president_approval: 'For Final Approval',
   president_approved: 'Approved by President',
-  for_board_approval: 'For Board Approval',
+  for_president_endorsement: 'For Endorsement',
+  for_board_approval: 'Endorsed — With Board',
   board_approved: 'Approved by Board',
 }
 
@@ -41,11 +40,12 @@ const typeLabel = computed(() => {
 })
 
 const statusLabel = computed(() => STATUS_LABELS[progress.value?.submission.status ?? ''] ?? '')
-const isForBoard = computed(() => progress.value?.submission.status === 'for_board_deliberation')
-const isForBoardConfirmation = computed(() => progress.value?.submission.status === 'for_board_confirmation')
-const isForBoardApproval = computed(() => progress.value?.submission.status === 'for_board_approval')
+// IMP path: President gives final approval.
 const isForPresidentApproval = computed(() => progress.value?.submission.status === 'for_president_approval')
 const isPresidentApproved = computed(() => progress.value?.submission.status === 'president_approved')
+// non-IMP path: President endorses, forwards to Board for final approval.
+const isForPresidentEndorsement = computed(() => progress.value?.submission.status === 'for_president_endorsement')
+const isForBoardApproval = computed(() => progress.value?.submission.status === 'for_board_approval')
 const isBoardApproved = computed(() => progress.value?.submission.status === 'board_approved')
 
 function formatDate(value: string | null) {
@@ -61,33 +61,33 @@ function docFor(itemCode: string) {
   return progress.value?.submission.documents.find((d) => d.itemCode === itemCode)
 }
 
-const boardApproving = ref(false)
-const boardApproveError = ref('')
-async function onBoardApprove() {
-  boardApproving.value = true
-  boardApproveError.value = ''
+const approving = ref(false)
+const approveError = ref('')
+async function onApprove() {
+  approving.value = true
+  approveError.value = ''
   try {
-    const updated = await boardApproveSubmission(id)
+    const updated = await presidentApprove(id)
     if (progress.value) progress.value.submission = { ...progress.value.submission, ...updated }
   } catch (e: any) {
-    boardApproveError.value = e?.data?.message || 'Could not record Board approval.'
+    approveError.value = e?.data?.message || 'Could not record final approval.'
   } finally {
-    boardApproving.value = false
+    approving.value = false
   }
 }
 
-const confirming = ref(false)
-const confirmError = ref('')
-async function onBoardConfirm() {
-  confirming.value = true
-  confirmError.value = ''
+const endorsing = ref(false)
+const endorseError = ref('')
+async function onEndorse() {
+  endorsing.value = true
+  endorseError.value = ''
   try {
-    const updated = await boardConfirm(id)
+    const updated = await presidentEndorse(id)
     if (progress.value) progress.value.submission = { ...progress.value.submission, ...updated }
   } catch (e: any) {
-    confirmError.value = e?.data?.message || 'Could not record Board confirmation.'
+    endorseError.value = e?.data?.message || 'Could not record the endorsement.'
   } finally {
-    confirming.value = false
+    endorsing.value = false
   }
 }
 
@@ -105,9 +105,9 @@ onMounted(async () => {
 <template>
   <div class="admin-shell">
     <header class="admin-topbar">
-      <div class="admin-title">Board — Request Detail</div>
+      <div class="admin-title">President — Request Detail</div>
       <div class="admin-topbar-right">
-        <NuxtLink to="/board" class="link-back">← All Requests</NuxtLink>
+        <NuxtLink to="/president" class="link-back">← All Requests</NuxtLink>
         <span v-if="user" class="session-email">{{ user.email }}</span>
         <button class="logout-btn" @click="logout(); router.push('/login')">Log out</button>
       </div>
@@ -127,39 +127,39 @@ onMounted(async () => {
           <div class="status-row">
             <span class="status-badge" :class="`badge-${progress.submission.status}`">{{ statusLabel }}</span>
             <span class="muted">Approved by ULDC {{ formatDateTime(progress.submission.uldcApprovedAt) }}</span>
-            <span v-if="progress.submission.adminCouncilEndorsedAt" class="muted">Endorsed by Admin Council {{ formatDateTime(progress.submission.adminCouncilEndorsedAt) }}</span>
-            <span v-if="progress.submission.presidentEndorsedAt" class="muted">Endorsed by President {{ formatDateTime(progress.submission.presidentEndorsedAt) }}</span>
+            <span class="muted">Endorsed by Admin Council {{ formatDateTime(progress.submission.adminCouncilEndorsedAt) }}</span>
             <span v-if="isForPresidentApproval || isPresidentApproved" class="muted">Confirmed by Board {{ formatDateTime(progress.submission.boardConfirmedAt) }}</span>
             <span v-if="isPresidentApproved" class="muted">Approved by President {{ formatDateTime(progress.submission.presidentApprovedAt) }}</span>
+            <span v-if="isForBoardApproval || isBoardApproved" class="muted">Endorsed by President {{ formatDateTime(progress.submission.presidentEndorsedAt) }}</span>
             <span v-if="isBoardApproved" class="muted">Approved by Board {{ formatDateTime(progress.submission.boardApprovedAt) }}</span>
           </div>
 
-          <div v-if="isForBoard || isForBoardApproval" class="screening-actions">
-            <p class="muted">{{ isForBoard ? 'ULDC has approved every document for this request.' : 'The President has endorsed this request.' }} Review the documents below, then record the Board's final decision.</p>
+          <div v-if="isForPresidentApproval" class="screening-actions">
+            <p class="muted">The Board has confirmed this Foreign Travel (IMP) request. Review the documents below, then record final approval.</p>
             <div class="action-buttons">
-              <button class="action-btn primary" :disabled="boardApproving" @click="onBoardApprove">
-                {{ boardApproving ? 'Recording…' : 'Mark Approved by Board' }}
+              <button class="action-btn primary" :disabled="approving" @click="onApprove">
+                {{ approving ? 'Approving…' : 'Give Final Approval' }}
               </button>
             </div>
-            <p v-if="boardApproveError" class="item-error">{{ boardApproveError }}</p>
+            <p v-if="approveError" class="item-error">{{ approveError }}</p>
           </div>
 
-          <div v-else-if="isForBoardConfirmation" class="screening-actions">
-            <p class="muted">The Admin Council has endorsed this Foreign Travel (IMP) request. Review the documents below, then confirm to forward it to the President for final approval.</p>
+          <div v-else-if="isForPresidentEndorsement" class="screening-actions">
+            <p class="muted">The Admin Council has endorsed this Foreign Travel (non-IMP) request. Review the documents below, then endorse it to forward to the Board for final approval.</p>
             <div class="action-buttons">
-              <button class="action-btn primary" :disabled="confirming" @click="onBoardConfirm">
-                {{ confirming ? 'Confirming…' : 'Confirm — Forward to President' }}
+              <button class="action-btn primary" :disabled="endorsing" @click="onEndorse">
+                {{ endorsing ? 'Endorsing…' : 'Endorse — Forward to Board' }}
               </button>
             </div>
-            <p v-if="confirmError" class="item-error">{{ confirmError }}</p>
+            <p v-if="endorseError" class="item-error">{{ endorseError }}</p>
           </div>
 
-          <div v-else-if="isForPresidentApproval || isPresidentApproved" class="screening-actions">
-            <p class="muted">This request has moved past the Board and is now {{ isPresidentApproved ? 'approved by the President' : 'with the President for final approval' }} — no further action needed from the Board.</p>
+          <div v-else-if="isPresidentApproved" class="screening-actions">
+            <p class="muted">✓ You have given final approval on this request. No further action needed.</p>
           </div>
 
-          <div v-else-if="isBoardApproved" class="screening-actions">
-            <p class="muted">✓ This request has been approved by the Board. No further action needed.</p>
+          <div v-else-if="isForBoardApproval || isBoardApproved" class="screening-actions">
+            <p class="muted">This request has moved past the President and is now {{ statusLabel.toLowerCase() }} — no further action needed here.</p>
           </div>
         </section>
 
@@ -188,7 +188,7 @@ onMounted(async () => {
             </div>
             <div class="info-field">
               <span class="info-label">Request Type</span>
-              <span class="info-value">{{ typeLabel }}</span>
+              <span class="info-value">{{ typeLabel }} — {{ progress.submission.isImp ? 'IMP' : 'non-IMP' }}</span>
             </div>
             <div class="info-field">
               <span class="info-label">Inclusive Dates</span>
@@ -414,15 +414,8 @@ onMounted(async () => {
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
-.badge-for_board_deliberation {
-  background: #eaf3ff;
-  color: #1a5fb4;
-}
-.badge-for_board_confirmation {
-  background: #eaf3ff;
-  color: #1a5fb4;
-}
-.badge-for_president_approval {
+.badge-for_president_approval,
+.badge-for_president_endorsement {
   background: #fde9d7;
   color: #a05a1a;
 }

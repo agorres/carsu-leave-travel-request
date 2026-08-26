@@ -4,7 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
-import { ReviewerGuard, UldcGuard, BoardGuard } from './role.guard';
+import { ReviewerGuard, UldcGuard, BoardGuard, AdminCouncilGuard, PresidentGuard } from './role.guard';
 import { User } from './entities/user.entity';
 
 @Module({
@@ -17,7 +17,7 @@ import { User } from './entities/user.entity';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtAuthGuard, ReviewerGuard, UldcGuard, BoardGuard],
-  exports: [JwtAuthGuard, ReviewerGuard, UldcGuard, BoardGuard, JwtModule],
+  providers: [AuthService, JwtAuthGuard, ReviewerGuard, UldcGuard, BoardGuard, AdminCouncilGuard, PresidentGuard],
+  exports: [JwtAuthGuard, ReviewerGuard, UldcGuard, BoardGuard, AdminCouncilGuard, PresidentGuard, JwtModule],
 })
 export class AuthModule {}

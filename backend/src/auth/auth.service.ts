@@ -29,6 +29,24 @@ function boardEmailSet(): Set<string> {
   );
 }
 
+function adminCouncilEmailSet(): Set<string> {
+  return new Set(
+    (process.env.ADMIN_COUNCIL_EMAILS ?? '')
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
+function presidentEmailSet(): Set<string> {
+  return new Set(
+    (process.env.PRESIDENT_EMAILS ?? '')
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
 // Restrict who can log in at all. Empty/unset = no restriction.
 function isAllowedDomain(email: string): boolean {
   const domain = (process.env.ALLOWED_EMAIL_DOMAIN ?? '').trim().toLowerCase();
@@ -66,13 +84,17 @@ export class AuthService {
       ? UserRole.ULDC
       : boardEmailSet().has(email)
         ? UserRole.BOARD
-        : UserRole.EMPLOYEE;
+        : adminCouncilEmailSet().has(email)
+          ? UserRole.ADMIN_COUNCIL
+          : presidentEmailSet().has(email)
+            ? UserRole.PRESIDENT
+            : UserRole.EMPLOYEE;
 
     let user = await this.userRepo.findOne({ where: { email } });
     if (!user) {
       user = this.userRepo.create({ email, role, lastLoginAt: new Date() });
     } else {
-      user.role = role; // keep in sync with ULDC_EMAILS / BOARD_EMAILS in case it changed
+      user.role = role; // keep in sync with the *_EMAILS env vars in case they changed
       user.lastLoginAt = new Date();
     }
     await this.userRepo.save(user);

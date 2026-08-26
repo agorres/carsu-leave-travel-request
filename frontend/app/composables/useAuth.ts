@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 export interface AuthUser {
   email: string
   name: string | null
-  role: 'employee' | 'uldc' | 'board'
+  role: 'employee' | 'uldc' | 'board' | 'admin_council' | 'president'
 }
 
 const STORAGE_KEY = 'carsu-auth'
@@ -69,6 +69,8 @@ export function useAuth() {
     isLoggedIn: computed(() => !!token.value),
     isUldc: computed(() => user.value?.role === 'uldc'),
     isBoard: computed(() => user.value?.role === 'board'),
+    isAdminCouncil: computed(() => user.value?.role === 'admin_council'),
+    isPresident: computed(() => user.value?.role === 'president'),
     login,
     logout,
   }

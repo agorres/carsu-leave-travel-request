@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { CHECKLISTS, ChecklistItemDef, getChecklistDef } from './checklist-config.data';
 import { RequestType, REQUEST_TYPE_LABELS } from './request-type.enum';
-import { Submission, SubmissionStatus } from './entities/submission.entity';
+import { Submission, SubmissionStatus, LOCKED_SUBMISSION_STATUSES } from './entities/submission.entity';
 import { SubmissionDocument, DocumentReviewStatus } from './entities/submission-document.entity';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 import { ReviewDocumentDto } from './dto/review-document.dto';
@@ -89,6 +89,7 @@ export class ChecklistService {
     yearsInCsu: dto.yearsInCsu,
     requestType: dto.requestType,
     isAbroad: dto.isAbroad ?? false,
+    isImp: dto.isImp ?? false,
     status: SubmissionStatus.IN_PROGRESS,
   });
   return this.submissionRepo.save(submission);
@@ -111,16 +112,10 @@ export class ChecklistService {
   }
 
   /**
-   * HR/admin view: every request that has ever been formally submitted —
-   * i.e. currently under screening, sent back for correction, or already
-   * approved. Requests still IN_PROGRESS/COMPLETE (not yet submitted) never
-   * appear here.
-   */
-  /**
    * ULDC Sub-Committee view: every request that has ever been formally
-   * submitted — under their own screening, sent back for correction,
-   * forwarded to the Board, or already Board-approved (so they can track
-   * a request's full lifecycle even after it leaves their hands).
+   * submitted — under their own screening, sent back for correction, or
+   * anywhere further downstream (so they can track a request's full
+   * lifecycle even after it leaves their hands, whichever flow it's on).
    * Requests still IN_PROGRESS/COMPLETE (not yet submitted) never appear.
    */
   async listUldcSubmissions(): Promise<Submission[]> {
@@ -130,6 +125,13 @@ export class ChecklistService {
           SubmissionStatus.SUBMITTED,
           SubmissionStatus.RETURNED_FOR_CORRECTION,
           SubmissionStatus.FOR_BOARD_DELIBERATION,
+          SubmissionStatus.ULDC_DELIBERATION,
+          SubmissionStatus.FOR_ADMIN_COUNCIL,
+          SubmissionStatus.FOR_BOARD_CONFIRMATION,
+          SubmissionStatus.FOR_PRESIDENT_APPROVAL,
+          SubmissionStatus.PRESIDENT_APPROVED,
+          SubmissionStatus.FOR_PRESIDENT_ENDORSEMENT,
+          SubmissionStatus.FOR_BOARD_APPROVAL,
           SubmissionStatus.BOARD_APPROVED,
         ]),
       },
@@ -139,14 +141,65 @@ export class ChecklistService {
   }
 
   /**
-   * Board view: only requests ULDC has already forwarded — either
-   * awaiting deliberation or already given final Board approval. The
-   * Board never sees requests still with ULDC (submitted / returned).
+   * Board view: requests currently awaiting Board action (standard-flow
+   * final approval, Foreign Travel+non-IMP final approval, or Foreign
+   * Travel+IMP confirmation), plus anything the Board has already acted
+   * on further downstream, for tracking.
    */
   async listBoardSubmissions(): Promise<Submission[]> {
     return this.submissionRepo.find({
       where: {
-        status: In([SubmissionStatus.FOR_BOARD_DELIBERATION, SubmissionStatus.BOARD_APPROVED]),
+        status: In([
+          SubmissionStatus.FOR_BOARD_DELIBERATION,
+          SubmissionStatus.FOR_BOARD_CONFIRMATION,
+          SubmissionStatus.FOR_BOARD_APPROVAL,
+          SubmissionStatus.FOR_PRESIDENT_APPROVAL,
+          SubmissionStatus.PRESIDENT_APPROVED,
+          SubmissionStatus.BOARD_APPROVED,
+        ]),
+      },
+      relations: { documents: true },
+      order: { uldcApprovedAt: 'DESC' },
+    });
+  }
+
+  /**
+   * Admin Council view (Foreign Travel only): requests ULDC has forwarded
+   * for endorsement, plus anything further downstream for tracking.
+   */
+  async listAdminCouncilSubmissions(): Promise<Submission[]> {
+    return this.submissionRepo.find({
+      where: {
+        status: In([
+          SubmissionStatus.FOR_ADMIN_COUNCIL,
+          SubmissionStatus.FOR_BOARD_CONFIRMATION,
+          SubmissionStatus.FOR_PRESIDENT_APPROVAL,
+          SubmissionStatus.PRESIDENT_APPROVED,
+          SubmissionStatus.FOR_PRESIDENT_ENDORSEMENT,
+          SubmissionStatus.FOR_BOARD_APPROVAL,
+          SubmissionStatus.BOARD_APPROVED,
+        ]),
+      },
+      relations: { documents: true },
+      order: { uldcApprovedAt: 'DESC' },
+    });
+  }
+
+  /**
+   * President view (Foreign Travel only): requests awaiting the
+   * President's endorsement (non-IMP) or final approval (IMP), plus
+   * anything further downstream for tracking.
+   */
+  async listPresidentSubmissions(): Promise<Submission[]> {
+    return this.submissionRepo.find({
+      where: {
+        status: In([
+          SubmissionStatus.FOR_PRESIDENT_APPROVAL,
+          SubmissionStatus.PRESIDENT_APPROVED,
+          SubmissionStatus.FOR_PRESIDENT_ENDORSEMENT,
+          SubmissionStatus.FOR_BOARD_APPROVAL,
+          SubmissionStatus.BOARD_APPROVED,
+        ]),
       },
       relations: { documents: true },
       order: { uldcApprovedAt: 'DESC' },
@@ -188,11 +241,8 @@ export class ChecklistService {
     if (submission.status === SubmissionStatus.SUBMITTED) {
       throw new BadRequestException('This request is under ULDC Sub-Committee screening and cannot be edited right now');
     }
-    if (
-      submission.status === SubmissionStatus.FOR_BOARD_DELIBERATION ||
-      submission.status === SubmissionStatus.BOARD_APPROVED
-    ) {
-      throw new BadRequestException('This request has already been approved by ULDC and can no longer be edited');
+    if (LOCKED_SUBMISSION_STATUSES.includes(submission.status)) {
+      throw new BadRequestException('This request has already moved past ULDC screening and can no longer be edited');
     }
 
     const requiredItems = this.getRequiredItems(submission.requestType, submission.isAbroad);
@@ -257,11 +307,8 @@ export class ChecklistService {
     if (submission.status === SubmissionStatus.SUBMITTED) {
       throw new BadRequestException('This request is under ULDC Sub-Committee screening and cannot be edited right now');
     }
-    if (
-      submission.status === SubmissionStatus.FOR_BOARD_DELIBERATION ||
-      submission.status === SubmissionStatus.BOARD_APPROVED
-    ) {
-      throw new BadRequestException('This request has already been approved by ULDC and can no longer be edited');
+    if (LOCKED_SUBMISSION_STATUSES.includes(submission.status)) {
+      throw new BadRequestException('This request has already moved past ULDC screening and can no longer be edited');
     }
 
     const doc = await this.documentRepo.findOne({ where: { submissionId, itemCode } });
@@ -292,11 +339,8 @@ export class ChecklistService {
     if (submission.status === SubmissionStatus.SUBMITTED) {
       throw new BadRequestException('This request is already under ULDC Sub-Committee screening');
     }
-    if (
-      submission.status === SubmissionStatus.FOR_BOARD_DELIBERATION ||
-      submission.status === SubmissionStatus.BOARD_APPROVED
-    ) {
-      throw new BadRequestException('This request has already been approved by ULDC');
+    if (LOCKED_SUBMISSION_STATUSES.includes(submission.status)) {
+      throw new BadRequestException('This request has already moved past ULDC screening');
     }
 
     const progress = await this.getProgress(id);
@@ -382,10 +426,12 @@ export class ChecklistService {
   }
 
   /**
-   * ULDC Sub-Committee's final screening action. Only allowed once every
-   * required document has been individually approved. Does not close the
-   * request out — it forwards the request to the Board for final
-   * deliberation.
+   * ULDC Sub-Committee's initial screening approval. Only allowed once
+   * every required document has been individually approved. Where this
+   * forwards to depends on the request:
+   *   - anything except Foreign Travel        -> FOR_BOARD_DELIBERATION
+   *   - Foreign Travel + IMP                  -> ULDC_DELIBERATION
+   *   - Foreign Travel + not IMP              -> FOR_ADMIN_COUNCIL
    */
   async approveSubmission(submissionId: string): Promise<Submission> {
     const submission = await this.getSubmission(submissionId);
@@ -402,23 +448,124 @@ export class ChecklistService {
       throw new BadRequestException('Every document must be individually approved first');
     }
 
+    const isForeignTravel = submission.requestType === RequestType.FOREIGN_TRAVEL;
+    const nextStatus = !isForeignTravel
+      ? SubmissionStatus.FOR_BOARD_DELIBERATION
+      : submission.isImp
+        ? SubmissionStatus.ULDC_DELIBERATION
+        : SubmissionStatus.FOR_ADMIN_COUNCIL;
+
     const uldcApprovedAt = new Date();
-    await this.submissionRepo.update(submissionId, {
-      status: SubmissionStatus.FOR_BOARD_DELIBERATION,
-      uldcApprovedAt,
-    });
-    return { ...submission, status: SubmissionStatus.FOR_BOARD_DELIBERATION, uldcApprovedAt };
+    await this.submissionRepo.update(submissionId, { status: nextStatus, uldcApprovedAt });
+    return { ...submission, status: nextStatus, uldcApprovedAt };
   }
 
   /**
-   * Board's final deliberation action. Only valid once ULDC has approved
-   * every document and forwarded the request. Locks the submission
-   * permanently — this is the last stage in the workflow.
+   * Foreign Travel + IMP only. ULDC concludes full-body deliberation
+   * (the stage after initial screening) and forwards to Admin Council.
+   */
+  async concludeUldcDeliberation(submissionId: string): Promise<Submission> {
+    const submission = await this.getSubmission(submissionId);
+    if (submission.status !== SubmissionStatus.ULDC_DELIBERATION) {
+      throw new BadRequestException('Only a request under ULDC deliberation can be forwarded from here');
+    }
+
+    const uldcDeliberationAt = new Date();
+    await this.submissionRepo.update(submissionId, {
+      status: SubmissionStatus.FOR_ADMIN_COUNCIL,
+      uldcDeliberationAt,
+    });
+    return { ...submission, status: SubmissionStatus.FOR_ADMIN_COUNCIL, uldcDeliberationAt };
+  }
+
+  /**
+   * Foreign Travel only. Admin Council endorses the request. Where this
+   * forwards to depends on IMP:
+   *   - IMP     -> FOR_BOARD_CONFIRMATION
+   *   - not IMP -> FOR_PRESIDENT_ENDORSEMENT
+   */
+  async adminCouncilEndorse(submissionId: string): Promise<Submission> {
+    const submission = await this.getSubmission(submissionId);
+    if (submission.status !== SubmissionStatus.FOR_ADMIN_COUNCIL) {
+      throw new BadRequestException('Only a request forwarded to Admin Council can be endorsed');
+    }
+
+    const nextStatus = submission.isImp
+      ? SubmissionStatus.FOR_BOARD_CONFIRMATION
+      : SubmissionStatus.FOR_PRESIDENT_ENDORSEMENT;
+
+    const adminCouncilEndorsedAt = new Date();
+    await this.submissionRepo.update(submissionId, { status: nextStatus, adminCouncilEndorsedAt });
+    return { ...submission, status: nextStatus, adminCouncilEndorsedAt };
+  }
+
+  /**
+   * Foreign Travel + IMP only. Board confirms the request (not final for
+   * this path) and forwards to the President for final approval.
+   */
+  async boardConfirm(submissionId: string): Promise<Submission> {
+    const submission = await this.getSubmission(submissionId);
+    if (submission.status !== SubmissionStatus.FOR_BOARD_CONFIRMATION) {
+      throw new BadRequestException('Only a request forwarded to the Board for confirmation can be confirmed');
+    }
+
+    const boardConfirmedAt = new Date();
+    await this.submissionRepo.update(submissionId, {
+      status: SubmissionStatus.FOR_PRESIDENT_APPROVAL,
+      boardConfirmedAt,
+    });
+    return { ...submission, status: SubmissionStatus.FOR_PRESIDENT_APPROVAL, boardConfirmedAt };
+  }
+
+  /**
+   * Foreign Travel + IMP only. President's final approval — last stage
+   * in this path.
+   */
+  async presidentApprove(submissionId: string): Promise<Submission> {
+    const submission = await this.getSubmission(submissionId);
+    if (submission.status !== SubmissionStatus.FOR_PRESIDENT_APPROVAL) {
+      throw new BadRequestException('Only a request forwarded to the President can be given final approval');
+    }
+
+    const presidentApprovedAt = new Date();
+    await this.submissionRepo.update(submissionId, {
+      status: SubmissionStatus.PRESIDENT_APPROVED,
+      presidentApprovedAt,
+    });
+    return { ...submission, status: SubmissionStatus.PRESIDENT_APPROVED, presidentApprovedAt };
+  }
+
+  /**
+   * Foreign Travel + non-IMP only. President endorses (not final for this
+   * path) and forwards to the Board for final approval.
+   */
+  async presidentEndorse(submissionId: string): Promise<Submission> {
+    const submission = await this.getSubmission(submissionId);
+    if (submission.status !== SubmissionStatus.FOR_PRESIDENT_ENDORSEMENT) {
+      throw new BadRequestException('Only a request forwarded to the President for endorsement can be endorsed');
+    }
+
+    const presidentEndorsedAt = new Date();
+    await this.submissionRepo.update(submissionId, {
+      status: SubmissionStatus.FOR_BOARD_APPROVAL,
+      presidentEndorsedAt,
+    });
+    return { ...submission, status: SubmissionStatus.FOR_BOARD_APPROVAL, presidentEndorsedAt };
+  }
+
+  /**
+   * Board's final approval action. Valid from either:
+   *   - FOR_BOARD_DELIBERATION (standard flow — every non-Foreign-Travel type)
+   *   - FOR_BOARD_APPROVAL (Foreign Travel + non-IMP, after President endorses)
+   * Locks the submission permanently — the last stage in both of those paths.
    */
   async boardApprove(submissionId: string): Promise<Submission> {
     const submission = await this.getSubmission(submissionId);
-    if (submission.status !== SubmissionStatus.FOR_BOARD_DELIBERATION) {
-      throw new BadRequestException('Only a request forwarded to the Board can be given Board approval');
+    if (
+      submission.status !== SubmissionStatus.FOR_BOARD_DELIBERATION &&
+      submission.status !== SubmissionStatus.FOR_BOARD_APPROVAL
+    ) {
+      throw new BadRequestException('Only a request currently awaiting final Board approval can be approved');
     }
 
     const boardApprovedAt = new Date();

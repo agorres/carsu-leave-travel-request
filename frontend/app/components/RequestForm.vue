@@ -19,6 +19,7 @@ const OFFICE_AFFILIATION_OPTIONS = ['OVPAA', 'OVPAF', 'OVPRDIE', 'OVPSAS']
 
 const selectedType = ref<string>('')
 const isAbroad = ref(false)
+const isImp = ref(false)
 const employeeName = ref('')
 const employeeUsername = ref('')
 const officeAffiliation = ref('')
@@ -62,6 +63,13 @@ const isSubmitted = computed(() => progress.value?.submission.status === 'submit
 const isReturned = computed(() => progress.value?.submission.status === 'returned_for_correction')
 const isForBoard = computed(() => progress.value?.submission.status === 'for_board_deliberation')
 const isBoardApproved = computed(() => progress.value?.submission.status === 'board_approved')
+const isUldcDeliberation = computed(() => progress.value?.submission.status === 'uldc_deliberation')
+const isForAdminCouncil = computed(() => progress.value?.submission.status === 'for_admin_council')
+const isForBoardConfirmation = computed(() => progress.value?.submission.status === 'for_board_confirmation')
+const isForPresidentApproval = computed(() => progress.value?.submission.status === 'for_president_approval')
+const isPresidentApproved = computed(() => progress.value?.submission.status === 'president_approved')
+const isForPresidentEndorsement = computed(() => progress.value?.submission.status === 'for_president_endorsement')
+const isForBoardApproval = computed(() => progress.value?.submission.status === 'for_board_approval')
 // Once returned, everything is locked EXCEPT items HR flagged rejected.
 // The file input overwrites a rejected doc in one step (attachDocument
 // handles that server-side), so `doc` normally still exists here — but
@@ -102,6 +110,7 @@ onMounted(async () => {
       const s = progress.value.submission
       selectedType.value = s.requestType
       isAbroad.value = s.isAbroad
+      isImp.value = s.isImp
       employeeName.value = s.employeeName
       employeeUsername.value = s.employeeEmail.replace(/@carsu\.edu\.ph$/, '')
       officeAffiliation.value = s.officeAffiliation
@@ -126,6 +135,7 @@ async function beginChecklist() {
     const submission = await createSubmission({
       requestType: selectedType.value,
       isAbroad: isAbroad.value,
+      isImp: selectedType.value === 'foreign_travel' ? isImp.value : false,
       employeeName: employeeName.value.trim(),
       employeeEmail: employeeEmail.value.trim(),
       officeAffiliation: officeAffiliation.value.trim(),
@@ -154,7 +164,12 @@ function recalculateProgress() {
   progress.value.percentComplete = progress.value.totalRequired
     ? Math.round((progress.value.totalUploaded / progress.value.totalRequired) * 100)
     : 0
-  const lockedStatuses = ['submitted', 'returned_for_correction', 'for_board_deliberation', 'board_approved']
+  const lockedStatuses = [
+    'submitted', 'returned_for_correction',
+    'for_board_deliberation', 'uldc_deliberation', 'for_admin_council',
+    'for_board_confirmation', 'for_president_approval', 'president_approved',
+    'for_president_endorsement', 'for_board_approval', 'board_approved',
+  ]
   if (!lockedStatuses.includes(progress.value.submission.status)) {
     progress.value.submission.status = missingItems.length === 0 ? 'complete' : 'in_progress'
   }
@@ -235,8 +250,11 @@ function docFor(itemCode: string) {
 }
 
 function itemEditable(itemCode: string) {
-  if (isSubmitted.value || isForBoard.value || isBoardApproved.value) return false
   if (isReturned.value) return canReupload(itemCode)
+  if (isSubmitted.value || isForBoard.value || isBoardApproved.value) return false
+  if (isUldcDeliberation.value || isForAdminCouncil.value || isForBoardConfirmation.value) return false
+  if (isForPresidentApproval.value || isPresidentApproved.value) return false
+  if (isForPresidentEndorsement.value || isForBoardApproval.value) return false
   return true
 }
 
@@ -365,6 +383,11 @@ const groupedItems = computed(() => {
             This is for travel/study abroad (adds CHED IAS Assessment)
           </label>
 
+          <label v-if="selectedType === 'foreign_travel'" class="abroad-toggle">
+            <input type="checkbox" v-model="isImp" :disabled="!!submissionId" />
+            This travel is IMP
+          </label>
+
           <button
             v-if="!submissionId"
             class="begin-btn"
@@ -390,8 +413,36 @@ const groupedItems = computed(() => {
           <div class="progress-bar-fill" :style="{ width: progress.percentComplete + '%' }" />
         </div>
 
-        <div v-if="isBoardApproved" class="complete-banner approved-banner">
+        <div v-if="isPresidentApproved" class="complete-banner approved-banner">
+          <p>✓ Request approved by the President{{ progress.submission.presidentApprovedAt ? ' on ' + new Date(progress.submission.presidentApprovedAt).toLocaleDateString() : '' }}. No further action needed.</p>
+          <button class="begin-btn" @click="startNewRequest">Back</button>
+        </div>
+        <div v-else-if="isBoardApproved" class="complete-banner approved-banner">
           <p>✓ Request approved by the Board{{ progress.submission.boardApprovedAt ? ' on ' + new Date(progress.submission.boardApprovedAt).toLocaleDateString() : '' }}. No further action needed.</p>
+          <button class="begin-btn" @click="startNewRequest">Back</button>
+        </div>
+        <div v-else-if="isForPresidentApproval" class="complete-banner approved-banner">
+          <p>✓ Confirmed by the Board{{ progress.submission.boardConfirmedAt ? ' on ' + new Date(progress.submission.boardConfirmedAt).toLocaleDateString() : '' }} and forwarded to the President for final approval.</p>
+          <button class="begin-btn" @click="startNewRequest">Back</button>
+        </div>
+        <div v-else-if="isForBoardApproval" class="complete-banner approved-banner">
+          <p>✓ Endorsed by the President{{ progress.submission.presidentEndorsedAt ? ' on ' + new Date(progress.submission.presidentEndorsedAt).toLocaleDateString() : '' }} and forwarded to the Board for final approval.</p>
+          <button class="begin-btn" @click="startNewRequest">Back</button>
+        </div>
+        <div v-else-if="isForBoardConfirmation" class="complete-banner approved-banner">
+          <p>✓ Endorsed by the Admin Council{{ progress.submission.adminCouncilEndorsedAt ? ' on ' + new Date(progress.submission.adminCouncilEndorsedAt).toLocaleDateString() : '' }} and forwarded to the Board for confirmation.</p>
+          <button class="begin-btn" @click="startNewRequest">Back</button>
+        </div>
+        <div v-else-if="isForPresidentEndorsement" class="complete-banner approved-banner">
+          <p>✓ Endorsed by the Admin Council{{ progress.submission.adminCouncilEndorsedAt ? ' on ' + new Date(progress.submission.adminCouncilEndorsedAt).toLocaleDateString() : '' }} and forwarded to the President for endorsement.</p>
+          <button class="begin-btn" @click="startNewRequest">Back</button>
+        </div>
+        <div v-else-if="isForAdminCouncil" class="complete-banner approved-banner">
+          <p>✓ Approved by the ULDC Sub-Committee and forwarded to the Admin Council for endorsement.</p>
+          <button class="begin-btn" @click="startNewRequest">Back</button>
+        </div>
+        <div v-else-if="isUldcDeliberation" class="complete-banner approved-banner">
+          <p>✓ Approved by the ULDC Sub-Committee{{ progress.submission.uldcApprovedAt ? ' on ' + new Date(progress.submission.uldcApprovedAt).toLocaleDateString() : '' }} and now under full ULDC body deliberation.</p>
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="isForBoard" class="complete-banner approved-banner">
@@ -436,7 +487,7 @@ const groupedItems = computed(() => {
                     {{ docFor(item.code)!.originalFileName }}
                   </span>
                   <span
-                    v-if="(isSubmitted || isReturned || isForBoard || isBoardApproved) && docFor(item.code)"
+                    v-if="progress.submission.status !== 'in_progress' && progress.submission.status !== 'complete' && docFor(item.code)"
                     class="review-badge"
                     :class="`review-${docFor(item.code)!.reviewStatus}`"
                   >

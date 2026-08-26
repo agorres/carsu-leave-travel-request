@@ -28,6 +28,13 @@ const STATUS_LABELS: Record<string, string> = {
   submitted: 'Under ULDC Screening',
   returned_for_correction: 'Action Needed',
   for_board_deliberation: 'For Board Deliberation',
+  uldc_deliberation: 'Under ULDC Deliberation',
+  for_admin_council: 'For Admin Council',
+  for_board_confirmation: 'For Board Confirmation',
+  for_president_approval: 'For President Approval',
+  president_approved: 'Approved by President',
+  for_president_endorsement: 'For President Endorsement',
+  for_board_approval: 'For Board Approval',
   board_approved: 'Approved by Board',
 }
 
@@ -49,7 +56,14 @@ const sortedSubmissions = computed(() => {
     in_progress: 1,
     complete: 1,
     submitted: 2,
+    uldc_deliberation: 2,
+    for_admin_council: 2,
     for_board_deliberation: 2,
+    for_board_confirmation: 2,
+    for_president_approval: 2,
+    for_president_endorsement: 2,
+    for_board_approval: 2,
+    president_approved: 3,
     board_approved: 3,
   }
   return [...submissions.value].sort((a, b) => {
@@ -350,6 +364,31 @@ onMounted(loadRequests)
 .pill-for_board_deliberation {
   background: #eaf3ff;
   color: #1a5fb4;
+}
+.pill-uldc_deliberation {
+  background: #fff4d6;
+  color: #8a6300;
+}
+.pill-for_admin_council {
+  background: #f1e8fd;
+  color: #5a2ca0;
+}
+.pill-for_board_confirmation {
+  background: #eaf3ff;
+  color: #1a5fb4;
+}
+.pill-for_president_approval,
+.pill-for_president_endorsement {
+  background: #fde9d7;
+  color: #a05a1a;
+}
+.pill-for_board_approval {
+  background: #eaf3ff;
+  color: #1a5fb4;
+}
+.pill-president_approved {
+  background: #dff5df;
+  color: var(--emerald);
 }
 .pill-board_approved {
   background: #dff5df;

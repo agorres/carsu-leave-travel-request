@@ -27,7 +27,19 @@ export type SubmissionStatus =
   | 'complete'
   | 'submitted'
   | 'returned_for_correction'
+  // standard flow (every request type except Foreign Travel)
   | 'for_board_deliberation'
+  // Foreign Travel + IMP only
+  | 'uldc_deliberation'
+  | 'for_board_confirmation'
+  | 'for_president_approval'
+  | 'president_approved'
+  // Foreign Travel + non-IMP only
+  | 'for_president_endorsement'
+  | 'for_board_approval'
+  // Foreign Travel only (either IMP or not)
+  | 'for_admin_council'
+  // final for standard flow AND Foreign Travel + non-IMP
   | 'board_approved';
 
 export interface Submission {
@@ -43,10 +55,16 @@ export interface Submission {
   yearsInCsu: number;
   requestType: string;
   isAbroad: boolean;
+  isImp: boolean;
   status: SubmissionStatus;
   submittedAt: string | null;
   returnedAt: string | null;
   uldcApprovedAt: string | null;
+  uldcDeliberationAt: string | null;
+  adminCouncilEndorsedAt: string | null;
+  boardConfirmedAt: string | null;
+  presidentApprovedAt: string | null;
+  presidentEndorsedAt: string | null;
   boardApprovedAt: string | null;
   createdAt: string;
   documents: SubmissionDocument[];
@@ -65,6 +83,7 @@ export interface SubmissionProgress {
 export interface CreateSubmissionInput {
   requestType: string;
   isAbroad: boolean;
+  isImp: boolean;
   employeeName: string;
   employeeEmail: string;
   officeAffiliation: string;
@@ -156,6 +175,22 @@ export function useChecklist() {
     });
   }
 
+  // Admin Council (Foreign Travel only) — requests ULDC has forwarded for endorsement.
+  async function listAdminCouncilSubmissions(): Promise<Submission[]> {
+    return $fetch(`${base}/checklist/admin-council/submitted`, {
+      headers: authHeaders(),
+      cache: 'no-store',
+    });
+  }
+
+  // President (Foreign Travel only) — requests awaiting endorsement or final approval.
+  async function listPresidentSubmissions(): Promise<Submission[]> {
+    return $fetch(`${base}/checklist/president/submitted`, {
+      headers: authHeaders(),
+      cache: 'no-store',
+    });
+  }
+
   // Document downloads are plain <a>/img src links, which can't carry an
   // Authorization header — append the token as a query param instead.
   // (The backend accepts either; see jwt-auth.guard.ts.)
@@ -196,10 +231,52 @@ export function useChecklist() {
     });
   }
 
-  // Board — final deliberation action, only valid once ULDC has forwarded
-  // the request (status for_board_deliberation).
+  // Board — final approval action, valid from either the standard flow
+  // (for_board_deliberation) or Foreign Travel + non-IMP (for_board_approval).
   async function boardApproveSubmission(submissionId: string): Promise<Submission> {
     return $fetch(`${base}/checklist/submissions/${submissionId}/board-approve`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+  }
+
+  // Foreign Travel + IMP only — ULDC concludes full-body deliberation,
+  // forwards to Admin Council.
+  async function concludeUldcDeliberation(submissionId: string): Promise<Submission> {
+    return $fetch(`${base}/checklist/submissions/${submissionId}/conclude-uldc-deliberation`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+  }
+
+  // Foreign Travel only — Admin Council endorses (forwards to Board
+  // confirmation if IMP, or President endorsement if not).
+  async function adminCouncilEndorse(submissionId: string): Promise<Submission> {
+    return $fetch(`${base}/checklist/submissions/${submissionId}/admin-council-endorse`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+  }
+
+  // Foreign Travel + IMP only — Board confirms (not final), forwards to the President.
+  async function boardConfirm(submissionId: string): Promise<Submission> {
+    return $fetch(`${base}/checklist/submissions/${submissionId}/board-confirm`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+  }
+
+  // Foreign Travel + IMP only — President's final approval.
+  async function presidentApprove(submissionId: string): Promise<Submission> {
+    return $fetch(`${base}/checklist/submissions/${submissionId}/president-approve`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+  }
+
+  // Foreign Travel + non-IMP only — President endorses (not final), forwards to the Board.
+  async function presidentEndorse(submissionId: string): Promise<Submission> {
+    return $fetch(`${base}/checklist/submissions/${submissionId}/president-endorse`, {
       method: 'POST',
       headers: authHeaders(),
     });
@@ -214,11 +291,18 @@ export function useChecklist() {
     submitSubmission,
     listUldcSubmissions,
     listBoardSubmissions,
+    listAdminCouncilSubmissions,
+    listPresidentSubmissions,
     listMySubmissions,
     getDocumentDownloadUrl,
     reviewDocument,
     returnForCorrection,
     approveSubmission,
     boardApproveSubmission,
+    concludeUldcDeliberation,
+    adminCouncilEndorse,
+    boardConfirm,
+    presidentApprove,
+    presidentEndorse,
   };
 }

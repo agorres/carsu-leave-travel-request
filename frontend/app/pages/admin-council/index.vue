@@ -3,9 +3,9 @@ import { ref, onMounted } from 'vue'
 import { useChecklist, type Submission } from '~/composables/useChecklist'
 import { useAuth } from '~/composables/useAuth'
 
-definePageMeta({ middleware: 'board' })
+definePageMeta({ middleware: 'admin-council' })
 
-const { listBoardSubmissions } = useChecklist()
+const { listAdminCouncilSubmissions } = useChecklist()
 const { user, logout } = useAuth()
 const router = useRouter()
 
@@ -23,12 +23,13 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  for_board_deliberation: 'For Deliberation',
-  for_board_confirmation: 'For Confirmation',
-  for_president_approval: 'Confirmed — With President',
+  for_admin_council: 'For Endorsement',
+  for_board_confirmation: 'Endorsed — With Board',
+  for_president_approval: 'With President',
   president_approved: 'Approved by President',
-  for_board_approval: 'For Final Approval',
-  board_approved: 'Approved',
+  for_president_endorsement: 'Endorsed — With President',
+  for_board_approval: 'With Board',
+  board_approved: 'Approved by Board',
 }
 
 function typeLabel(type: string) {
@@ -46,7 +47,7 @@ function formatDate(value: string | null) {
 
 onMounted(async () => {
   try {
-    submissions.value = await listBoardSubmissions()
+    submissions.value = await listAdminCouncilSubmissions()
   } catch (e) {
     loadError.value = 'Could not load requests. Is the server running?'
   } finally {
@@ -58,7 +59,7 @@ onMounted(async () => {
 <template>
   <div class="admin-shell">
     <header class="admin-topbar">
-      <div class="admin-title">Board — Requests for Deliberation</div>
+      <div class="admin-title">Admin Council — Foreign Travel Requests</div>
       <div class="admin-topbar-right">
         <span v-if="user" class="session-email">{{ user.email }}</span>
         <button class="logout-btn" @click="logout(); router.push('/login')">Log out</button>
@@ -85,7 +86,7 @@ onMounted(async () => {
               <th>Employee</th>
               <th>Office / Unit</th>
               <th>Request Type</th>
-              <th>Forwarded by ULDC</th>
+              <th>ULDC Approved</th>
               <th>Status</th>
               <th></th>
             </tr>
@@ -102,14 +103,14 @@ onMounted(async () => {
               </td>
               <td>
                 {{ typeLabel(s.requestType) }}
-                <span v-if="s.requestType === 'foreign_travel'" class="imp-tag">{{ s.isImp ? 'IMP' : 'non-IMP' }}</span>
+                <span class="imp-tag">{{ s.isImp ? 'IMP' : 'non-IMP' }}</span>
               </td>
               <td>{{ formatDate(s.uldcApprovedAt) }}</td>
               <td>
                 <span class="status-pill" :class="`pill-${s.status}`">{{ statusLabel(s.status) }}</span>
               </td>
               <td>
-                <NuxtLink :to="`/board/${s.id}`" class="view-link">View →</NuxtLink>
+                <NuxtLink :to="`/admin-council/${s.id}`" class="view-link">View →</NuxtLink>
               </td>
             </tr>
           </tbody>
@@ -226,21 +227,19 @@ onMounted(async () => {
   font-size: 11.5px;
   font-weight: 700;
 }
-.pill-for_board_deliberation {
-  background: #eaf3ff;
-  color: #1a5fb4;
+.pill-for_admin_council {
+  background: #f1e8fd;
+  color: #5a2ca0;
 }
-.pill-for_board_confirmation {
-  background: #eaf3ff;
-  color: #1a5fb4;
-}
-.pill-for_president_approval {
-  background: #fde9d7;
-  color: #a05a1a;
-}
+.pill-for_board_confirmation,
 .pill-for_board_approval {
   background: #eaf3ff;
   color: #1a5fb4;
+}
+.pill-for_president_approval,
+.pill-for_president_endorsement {
+  background: #fde9d7;
+  color: #a05a1a;
 }
 .pill-president_approved,
 .pill-board_approved {
