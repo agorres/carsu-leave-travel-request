@@ -195,32 +195,6 @@ onMounted(async () => {
             <span v-if="isForBoard || isPastUldc || isBoardApproved" class="muted">Approved by ULDC Sub-Committee {{ formatDateTime(progress.submission.uldcApprovedAt) }}</span>
             <span v-if="isBoardApproved" class="muted">Approved by Board {{ formatDateTime(progress.submission.boardApprovedAt) }}</span>
           </div>
-
-          <div v-if="isUnderScreening" class="screening-actions">
-            <p class="muted">Approve or reject each document below, then either send the request back for correction or, once every document is approved, approve the whole request.</p>
-            <div class="action-buttons">
-              <button class="action-btn danger" :disabled="!hasAnyRejected || sendingBack" @click="onSendBack">
-                {{ sendingBack ? 'Sending back…' : 'Send Back for Correction' }}
-              </button>
-              <button class="action-btn primary" :disabled="!allApproved || approving" @click="onApprove">
-                {{ approving ? 'Approving…' : 'Approve Request' }}
-              </button>
-            </div>
-            <p v-if="sendBackError" class="item-error">{{ sendBackError }}</p>
-            <p v-if="approveError" class="item-error">{{ approveError }}</p>
-          </div>
-
-          <div v-else-if="isForBoard" class="screening-actions">
-            <p class="muted">ULDC Sub-Committee has approved every document. This request is now with the Board for final deliberation — no further action needed here.</p>
-          </div>
-
-          <div v-else-if="isBoardApproved" class="screening-actions">
-            <p class="muted">✓ This request has been approved by the Board. No further action needed.</p>
-          </div>
-
-          <div v-else-if="isPastUldc" class="screening-actions">
-            <p class="muted">This request has moved past ULDC Sub-Committee screening and is now with {{ statusLabel }} — no further action needed here.</p>
-          </div>
         </section>
 
         <section class="admin-card">
@@ -340,6 +314,34 @@ onMounted(async () => {
               </tr>
             </tbody>
           </table>
+        </section>
+
+        <section class="admin-card">
+          <div v-if="isUnderScreening" class="screening-actions">
+            <p class="muted">Approve or reject each document above, then either send the request back for correction or, once every document is approved, approve the whole request.</p>
+            <div class="action-buttons">
+              <button class="action-btn danger" :disabled="!hasAnyRejected || sendingBack" @click="onSendBack">
+                {{ sendingBack ? 'Sending back…' : 'Send Back for Correction' }}
+              </button>
+              <button class="action-btn primary" :disabled="!allApproved || approving" @click="onApprove">
+                {{ approving ? 'Approving…' : 'Approve Request' }}
+              </button>
+            </div>
+            <p v-if="sendBackError" class="item-error">{{ sendBackError }}</p>
+            <p v-if="approveError" class="item-error">{{ approveError }}</p>
+          </div>
+
+          <div v-else-if="isForBoard" class="screening-actions">
+            <p class="muted">ULDC Sub-Committee has approved every document. This request is now with the Board for final deliberation — no further action needed here.</p>
+          </div>
+
+          <div v-else-if="isBoardApproved" class="screening-actions">
+            <p class="muted">✓ This request has been approved by the Board. No further action needed.</p>
+          </div>
+
+          <div v-else-if="isPastUldc" class="screening-actions">
+            <p class="muted">This request has moved past ULDC Sub-Committee screening and is now with {{ statusLabel }} — no further action needed here.</p>
+          </div>
         </section>
       </template>
     </main>
@@ -545,8 +547,6 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #eee;
 }
 .action-buttons {
   display: flex;

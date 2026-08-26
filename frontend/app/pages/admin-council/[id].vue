@@ -115,20 +115,6 @@ onMounted(async () => {
             <span class="muted">Approved by ULDC {{ formatDateTime(progress.submission.uldcApprovedAt) }}</span>
             <span v-if="isPastAdminCouncil" class="muted">Endorsed by Admin Council {{ formatDateTime(progress.submission.adminCouncilEndorsedAt) }}</span>
           </div>
-
-          <div v-if="isForAdminCouncil" class="screening-actions">
-            <p class="muted">ULDC has forwarded this Foreign Travel request. Review the documents below, then endorse it to continue the approval flow.</p>
-            <div class="action-buttons">
-              <button class="action-btn primary" :disabled="endorsing" @click="onEndorse">
-                {{ endorsing ? 'Endorsing…' : 'Endorse Request' }}
-              </button>
-            </div>
-            <p v-if="endorseError" class="item-error">{{ endorseError }}</p>
-          </div>
-
-          <div v-else-if="isPastAdminCouncil" class="screening-actions">
-            <p class="muted">This request has moved past Admin Council and is now {{ statusLabel.toLowerCase() }} — no further action needed here.</p>
-          </div>
         </section>
 
         <section class="admin-card">
@@ -220,6 +206,22 @@ onMounted(async () => {
               </tr>
             </tbody>
           </table>
+        </section>
+
+        <section class="admin-card">
+          <div v-if="isForAdminCouncil" class="screening-actions">
+            <p class="muted">ULDC has forwarded this Foreign Travel request. Review the documents above, then endorse it to continue the approval flow.</p>
+            <div class="action-buttons">
+              <button class="action-btn primary" :disabled="endorsing" @click="onEndorse">
+                {{ endorsing ? 'Endorsing…' : 'Endorse Request' }}
+              </button>
+            </div>
+            <p v-if="endorseError" class="item-error">{{ endorseError }}</p>
+          </div>
+
+          <div v-else-if="isPastAdminCouncil" class="screening-actions">
+            <p class="muted">This request has moved past Admin Council and is now {{ statusLabel.toLowerCase() }} — no further action needed here.</p>
+          </div>
         </section>
       </template>
     </main>
@@ -405,8 +407,6 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #eee;
 }
 .action-buttons {
   display: flex;

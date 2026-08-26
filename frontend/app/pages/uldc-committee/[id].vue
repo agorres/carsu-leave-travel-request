@@ -112,20 +112,6 @@ onMounted(async () => {
             <span class="muted">Forwarded by Sub-Committee {{ formatDateTime(progress.submission.uldcApprovedAt) }}</span>
             <span v-if="isPastDeliberation" class="muted">Deliberation concluded {{ formatDateTime(progress.submission.uldcDeliberationAt) }}</span>
           </div>
-
-          <div v-if="isUldcDeliberation" class="screening-actions">
-            <p class="muted">This Foreign Travel (IMP) request has passed initial Sub-Committee screening and is under full ULDC body deliberation. Once deliberation concludes, forward it to the Admin Council.</p>
-            <div class="action-buttons">
-              <button class="action-btn primary" :disabled="concluding" @click="onConcludeDeliberation">
-                {{ concluding ? 'Forwarding…' : 'Conclude Deliberation — Forward to Admin Council' }}
-              </button>
-            </div>
-            <p v-if="concludeError" class="item-error">{{ concludeError }}</p>
-          </div>
-
-          <div v-else-if="isPastDeliberation" class="screening-actions">
-            <p class="muted">This request has moved past ULDC Committee deliberation and is now with {{ statusLabel }} — no further action needed here.</p>
-          </div>
         </section>
 
         <section class="admin-card">
@@ -211,6 +197,22 @@ onMounted(async () => {
               </tr>
             </tbody>
           </table>
+        </section>
+
+        <section class="admin-card">
+          <div v-if="isUldcDeliberation" class="screening-actions">
+            <p class="muted">This Foreign Travel (IMP) request has passed initial Sub-Committee screening and is under full ULDC body deliberation. Once deliberation concludes, forward it to the Admin Council.</p>
+            <div class="action-buttons">
+              <button class="action-btn primary" :disabled="concluding" @click="onConcludeDeliberation">
+                {{ concluding ? 'Forwarding…' : 'Conclude Deliberation — Forward to Admin Council' }}
+              </button>
+            </div>
+            <p v-if="concludeError" class="item-error">{{ concludeError }}</p>
+          </div>
+
+          <div v-else-if="isPastDeliberation" class="screening-actions">
+            <p class="muted">This request has moved past ULDC Committee deliberation and is now with {{ statusLabel }} — no further action needed here.</p>
+          </div>
         </section>
       </template>
     </main>
@@ -397,8 +399,6 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #eee;
 }
 .action-buttons {
   display: flex;

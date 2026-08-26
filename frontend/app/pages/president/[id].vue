@@ -133,34 +133,6 @@ onMounted(async () => {
             <span v-if="isForBoardApproval || isBoardApproved" class="muted">Endorsed by President {{ formatDateTime(progress.submission.presidentEndorsedAt) }}</span>
             <span v-if="isBoardApproved" class="muted">Approved by Board {{ formatDateTime(progress.submission.boardApprovedAt) }}</span>
           </div>
-
-          <div v-if="isForPresidentApproval" class="screening-actions">
-            <p class="muted">The Board has confirmed this Foreign Travel (IMP) request. Review the documents below, then record final approval.</p>
-            <div class="action-buttons">
-              <button class="action-btn primary" :disabled="approving" @click="onApprove">
-                {{ approving ? 'Approving…' : 'Give Final Approval' }}
-              </button>
-            </div>
-            <p v-if="approveError" class="item-error">{{ approveError }}</p>
-          </div>
-
-          <div v-else-if="isForPresidentEndorsement" class="screening-actions">
-            <p class="muted">The Admin Council has endorsed this Foreign Travel (non-IMP) request. Review the documents below, then endorse it to forward to the Board for final approval.</p>
-            <div class="action-buttons">
-              <button class="action-btn primary" :disabled="endorsing" @click="onEndorse">
-                {{ endorsing ? 'Endorsing…' : 'Endorse — Forward to Board' }}
-              </button>
-            </div>
-            <p v-if="endorseError" class="item-error">{{ endorseError }}</p>
-          </div>
-
-          <div v-else-if="isPresidentApproved" class="screening-actions">
-            <p class="muted">✓ You have given final approval on this request. No further action needed.</p>
-          </div>
-
-          <div v-else-if="isForBoardApproval || isBoardApproved" class="screening-actions">
-            <p class="muted">This request has moved past the President and is now {{ statusLabel.toLowerCase() }} — no further action needed here.</p>
-          </div>
         </section>
 
         <section class="admin-card">
@@ -252,6 +224,36 @@ onMounted(async () => {
               </tr>
             </tbody>
           </table>
+        </section>
+
+        <section class="admin-card">
+          <div v-if="isForPresidentApproval" class="screening-actions">
+            <p class="muted">The Board has confirmed this Foreign Travel (IMP) request. Review the documents above, then record final approval.</p>
+            <div class="action-buttons">
+              <button class="action-btn primary" :disabled="approving" @click="onApprove">
+                {{ approving ? 'Approving…' : 'Give Final Approval' }}
+              </button>
+            </div>
+            <p v-if="approveError" class="item-error">{{ approveError }}</p>
+          </div>
+
+          <div v-else-if="isForPresidentEndorsement" class="screening-actions">
+            <p class="muted">The Admin Council has endorsed this Foreign Travel (non-IMP) request. Review the documents above, then endorse it to forward to the Board for final approval.</p>
+            <div class="action-buttons">
+              <button class="action-btn primary" :disabled="endorsing" @click="onEndorse">
+                {{ endorsing ? 'Endorsing…' : 'Endorse — Forward to Board' }}
+              </button>
+            </div>
+            <p v-if="endorseError" class="item-error">{{ endorseError }}</p>
+          </div>
+
+          <div v-else-if="isPresidentApproved" class="screening-actions">
+            <p class="muted">✓ You have given final approval on this request. No further action needed.</p>
+          </div>
+
+          <div v-else-if="isForBoardApproval || isBoardApproved" class="screening-actions">
+            <p class="muted">This request has moved past the President and is now {{ statusLabel.toLowerCase() }} — no further action needed here.</p>
+          </div>
         </section>
       </template>
     </main>
@@ -432,8 +434,6 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #eee;
 }
 .action-buttons {
   display: flex;

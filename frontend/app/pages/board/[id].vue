@@ -133,34 +133,6 @@ onMounted(async () => {
             <span v-if="isPresidentApproved" class="muted">Approved by President {{ formatDateTime(progress.submission.presidentApprovedAt) }}</span>
             <span v-if="isBoardApproved" class="muted">Approved by Board {{ formatDateTime(progress.submission.boardApprovedAt) }}</span>
           </div>
-
-          <div v-if="isForBoard || isForBoardApproval" class="screening-actions">
-            <p class="muted">{{ isForBoard ? 'ULDC has approved every document for this request.' : 'The President has endorsed this request.' }} Review the documents below, then record the Board's final decision.</p>
-            <div class="action-buttons">
-              <button class="action-btn primary" :disabled="boardApproving" @click="onBoardApprove">
-                {{ boardApproving ? 'Recording…' : 'Mark Approved by Board' }}
-              </button>
-            </div>
-            <p v-if="boardApproveError" class="item-error">{{ boardApproveError }}</p>
-          </div>
-
-          <div v-else-if="isForBoardConfirmation" class="screening-actions">
-            <p class="muted">The Admin Council has endorsed this Foreign Travel (IMP) request. Review the documents below, then confirm to forward it to the President for final approval.</p>
-            <div class="action-buttons">
-              <button class="action-btn primary" :disabled="confirming" @click="onBoardConfirm">
-                {{ confirming ? 'Confirming…' : 'Confirm — Forward to President' }}
-              </button>
-            </div>
-            <p v-if="confirmError" class="item-error">{{ confirmError }}</p>
-          </div>
-
-          <div v-else-if="isForPresidentApproval || isPresidentApproved" class="screening-actions">
-            <p class="muted">This request has moved past the Board and is now {{ isPresidentApproved ? 'approved by the President' : 'with the President for final approval' }} — no further action needed from the Board.</p>
-          </div>
-
-          <div v-else-if="isBoardApproved" class="screening-actions">
-            <p class="muted">✓ This request has been approved by the Board. No further action needed.</p>
-          </div>
         </section>
 
         <section class="admin-card">
@@ -252,6 +224,36 @@ onMounted(async () => {
               </tr>
             </tbody>
           </table>
+        </section>
+
+        <section class="admin-card">
+          <div v-if="isForBoard || isForBoardApproval" class="screening-actions">
+            <p class="muted">{{ isForBoard ? 'ULDC has approved every document for this request.' : 'The President has endorsed this request.' }} Review the documents above, then record the Board's final decision.</p>
+            <div class="action-buttons">
+              <button class="action-btn primary" :disabled="boardApproving" @click="onBoardApprove">
+                {{ boardApproving ? 'Recording…' : 'Mark Approved by Board' }}
+              </button>
+            </div>
+            <p v-if="boardApproveError" class="item-error">{{ boardApproveError }}</p>
+          </div>
+
+          <div v-else-if="isForBoardConfirmation" class="screening-actions">
+            <p class="muted">The Admin Council has endorsed this Foreign Travel (IMP) request. Review the documents above, then confirm to forward it to the President for final approval.</p>
+            <div class="action-buttons">
+              <button class="action-btn primary" :disabled="confirming" @click="onBoardConfirm">
+                {{ confirming ? 'Confirming…' : 'Confirm — Forward to President' }}
+              </button>
+            </div>
+            <p v-if="confirmError" class="item-error">{{ confirmError }}</p>
+          </div>
+
+          <div v-else-if="isForPresidentApproval || isPresidentApproved" class="screening-actions">
+            <p class="muted">This request has moved past the Board and is now {{ isPresidentApproved ? 'approved by the President' : 'with the President for final approval' }} — no further action needed from the Board.</p>
+          </div>
+
+          <div v-else-if="isBoardApproved" class="screening-actions">
+            <p class="muted">✓ This request has been approved by the Board. No further action needed.</p>
+          </div>
         </section>
       </template>
     </main>
@@ -439,8 +441,6 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #eee;
 }
 .action-buttons {
   display: flex;
