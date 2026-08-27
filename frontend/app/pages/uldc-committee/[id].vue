@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, reactive } from 'vue'
 import { useRoute } from 'vue-router'
 import { useChecklist, type SubmissionProgress } from '~/composables/useChecklist'
 import { useAuth } from '~/composables/useAuth'
@@ -10,7 +10,7 @@ const route = useRoute()
 const id = route.params.id as string
 const router = useRouter()
 
-const { getProgress, getDocumentDownloadUrl, concludeUldcDeliberation } = useChecklist()
+const { getProgress, getDocumentDownloadUrl, reviewDocument, returnForCorrection, concludeUldcDeliberation } = useChecklist()
 const { user, logout } = useAuth()
 
 const progress = ref<SubmissionProgress | null>(null)
@@ -28,6 +28,7 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   uldc_deliberation: 'Under ULDC Committee Deliberation',
+  returned_for_correction: 'Returned for Correction',
   for_admin_council: 'For Admin Council',
   for_board_confirmation: 'For Board Confirmation',
   for_president_approval: 'For President Approval',
@@ -41,6 +42,14 @@ const typeLabel = computed(() => {
 
 const statusLabel = computed(() => STATUS_LABELS[progress.value?.submission.status ?? ''] ?? '')
 const isUldcDeliberation = computed(() => progress.value?.submission.status === 'uldc_deliberation')
+const isReturned = computed(() => progress.value?.submission.status === 'returned_for_correction')
+const RETURNED_BY_LABELS: Record<string, string> = {
+  uldc_subcommittee: 'ULDC Sub-Committee',
+  uldc_committee: 'ULDC Committee',
+}
+const returnedByLabel = computed(
+  () => RETURNED_BY_LABELS[progress.value?.submission.returnedBy ?? ''] ?? 'ULDC Sub-Committee',
+)
 const isPastDeliberation = computed(() => {
   const s = progress.value?.submission.status
   return s === 'for_admin_council' || s === 'for_board_confirmation' || s === 'for_president_approval' || s === 'president_approved'
@@ -57,6 +66,74 @@ function formatDateTime(value: string | null) {
 
 function docFor(itemCode: string) {
   return progress.value?.submission.documents.find((d) => d.itemCode === itemCode)
+}
+
+// --- per-document review drafts (same pattern as ULDC Sub-Committee) ---
+const commentDrafts = reactive<Record<string, string>>({})
+const reviewingCode = ref<string | null>(null)
+const reviewErrorByCode = reactive<Record<string, string>>({})
+
+const hasAnyRejected = computed(() =>
+  progress.value?.submission.documents.some((d) => d.reviewStatus === 'rejected') ?? false
+)
+const allApproved = computed(() => {
+  if (!progress.value) return false
+  return progress.value.requiredItems.every((item) => docFor(item.code)?.reviewStatus === 'approved')
+})
+
+async function approveDoc(itemCode: string) {
+  reviewingCode.value = itemCode
+  reviewErrorByCode[itemCode] = ''
+  try {
+    const updated = await reviewDocument(id, itemCode, 'approved', commentDrafts[itemCode]?.trim() || undefined)
+    applyReviewedDoc(itemCode, updated)
+  } catch (e: any) {
+    reviewErrorByCode[itemCode] = e?.data?.message || 'Could not approve this document.'
+  } finally {
+    reviewingCode.value = null
+  }
+}
+
+async function rejectDoc(itemCode: string) {
+  const comment = (commentDrafts[itemCode] ?? '').trim()
+  if (!comment) {
+    reviewErrorByCode[itemCode] = 'Add a comment explaining what needs to be fixed.'
+    return
+  }
+  reviewingCode.value = itemCode
+  reviewErrorByCode[itemCode] = ''
+  try {
+    const updated = await reviewDocument(id, itemCode, 'rejected', comment)
+    applyReviewedDoc(itemCode, updated)
+  } catch (e: any) {
+    reviewErrorByCode[itemCode] = e?.data?.message || 'Could not reject this document.'
+  } finally {
+    reviewingCode.value = null
+  }
+}
+
+function applyReviewedDoc(itemCode: string, updated: any) {
+  if (!progress.value) return
+  const docs = progress.value.submission.documents.filter((d) => d.itemCode !== itemCode)
+  docs.push(updated)
+  progress.value.submission.documents = docs
+  commentDrafts[itemCode] = ''
+}
+
+// --- top-level actions ---
+const sendingBack = ref(false)
+const sendBackError = ref('')
+async function onSendBack() {
+  sendingBack.value = true
+  sendBackError.value = ''
+  try {
+    const updated = await returnForCorrection(id)
+    if (progress.value) progress.value.submission = { ...progress.value.submission, ...updated }
+  } catch (e: any) {
+    sendBackError.value = e?.data?.message || 'Could not send this request back.'
+  } finally {
+    sendingBack.value = false
+  }
 }
 
 const concluding = ref(false)
@@ -110,6 +187,7 @@ onMounted(async () => {
           <div class="status-row">
             <span class="status-badge" :class="`badge-${progress.submission.status}`">{{ statusLabel }}</span>
             <span class="muted">Forwarded by Sub-Committee {{ formatDateTime(progress.submission.uldcApprovedAt) }}</span>
+            <span v-if="isReturned" class="muted">Sent back by {{ returnedByLabel }} {{ formatDateTime(progress.submission.returnedAt) }}</span>
             <span v-if="isPastDeliberation" class="muted">Deliberation concluded {{ formatDateTime(progress.submission.uldcDeliberationAt) }}</span>
           </div>
         </section>
@@ -154,13 +232,14 @@ onMounted(async () => {
 
         <section class="admin-card">
           <h2 class="section-heading">Screened Documents ({{ progress.totalUploaded }}/{{ progress.totalRequired }})</h2>
-          <p class="muted" style="margin-top: -10px; margin-bottom: 14px;">Every document below was already reviewed and approved by the ULDC Sub-Committee during initial screening.</p>
+          <p class="muted" style="margin-top: -10px; margin-bottom: 14px;">Every document below was already reviewed and approved by the ULDC Sub-Committee during initial screening. Review again here as part of full-body deliberation.</p>
           <table class="admin-table">
             <thead>
               <tr>
                 <th>Requirement</th>
                 <th>File</th>
                 <th>Status</th>
+                <th v-if="isUldcDeliberation">Review</th>
               </tr>
             </thead>
             <tbody>
@@ -193,6 +272,36 @@ onMounted(async () => {
                     {{ docFor(item.code)!.reviewStatus }}
                   </span>
                   <span v-else class="muted">—</span>
+                  <div v-if="docFor(item.code)?.reviewComment" class="review-comment">
+                    “{{ docFor(item.code)!.reviewComment }}”
+                  </div>
+                </td>
+                <td v-if="isUldcDeliberation" class="review-cell">
+                  <template v-if="docFor(item.code)">
+                    <textarea
+                      v-model="commentDrafts[item.code]"
+                      class="review-textarea"
+                      placeholder="Comment (required to reject)"
+                      rows="2"
+                    />
+                    <div class="review-buttons">
+                      <button
+                        class="review-btn approve"
+                        :disabled="reviewingCode === item.code"
+                        @click="approveDoc(item.code)"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        class="review-btn reject"
+                        :disabled="reviewingCode === item.code"
+                        @click="rejectDoc(item.code)"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                    <p v-if="reviewErrorByCode[item.code]" class="item-error">{{ reviewErrorByCode[item.code] }}</p>
+                  </template>
                 </td>
               </tr>
             </tbody>
@@ -201,13 +310,21 @@ onMounted(async () => {
 
         <section class="admin-card">
           <div v-if="isUldcDeliberation" class="screening-actions">
-            <p class="muted">This Foreign Travel (IMP) request has passed initial Sub-Committee screening and is under full ULDC body deliberation. Once deliberation concludes, forward it to the Admin Council.</p>
+            <p class="muted">Approve or reject each document above, then either send the request back for correction or, once every document is approved, conclude deliberation to forward it to the Admin Council.</p>
             <div class="action-buttons">
-              <button class="action-btn primary" :disabled="concluding" @click="onConcludeDeliberation">
+              <button class="action-btn danger" :disabled="!hasAnyRejected || sendingBack" @click="onSendBack">
+                {{ sendingBack ? 'Sending back…' : 'Send Back for Correction' }}
+              </button>
+              <button class="action-btn primary" :disabled="!allApproved || concluding" @click="onConcludeDeliberation">
                 {{ concluding ? 'Forwarding…' : 'Conclude Deliberation — Forward to Admin Council' }}
               </button>
             </div>
+            <p v-if="sendBackError" class="item-error">{{ sendBackError }}</p>
             <p v-if="concludeError" class="item-error">{{ concludeError }}</p>
+          </div>
+
+          <div v-else-if="isReturned" class="screening-actions">
+            <p class="muted">This request has been sent back to the employee. Once they resubmit, it returns to ULDC Sub-Committee for re-screening before coming back here.</p>
           </div>
 
           <div v-else-if="isPastDeliberation" class="screening-actions">
@@ -417,6 +534,11 @@ onMounted(async () => {
   background: var(--primary-green);
   color: #fff;
 }
+.action-btn.danger {
+  background: #fff;
+  border: 1.5px solid #b00020;
+  color: #b00020;
+}
 .action-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
@@ -433,8 +555,61 @@ onMounted(async () => {
   font-weight: 700;
   text-transform: capitalize;
 }
+.review-pending {
+  background: #eee;
+  color: var(--gray);
+}
 .review-approved {
   background: #dff5df;
   color: var(--emerald);
+}
+.review-rejected {
+  background: #fde3e3;
+  color: #b00020;
+}
+.review-comment {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--gray);
+  font-style: italic;
+  max-width: 220px;
+}
+.review-cell {
+  min-width: 220px;
+}
+.review-textarea {
+  width: 100%;
+  border: 1px solid #dcdcdc;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 12.5px;
+  font-family: inherit;
+  resize: vertical;
+}
+.review-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.review-btn {
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.review-btn.approve {
+  background: var(--primary-green);
+  color: #fff;
+}
+.review-btn.reject {
+  background: #fff;
+  border: 1px solid #b00020;
+  color: #b00020;
+}
+.review-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

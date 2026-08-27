@@ -61,6 +61,15 @@ const infoComplete = computed(() => {
 const readyToSubmit = computed(() => progress.value?.submission.status === 'complete')
 const isSubmitted = computed(() => progress.value?.submission.status === 'submitted')
 const isReturned = computed(() => progress.value?.submission.status === 'returned_for_correction')
+// Which body actually sent it back — defaults to Sub-Committee for older
+// records saved before returnedBy existed.
+const RETURNED_BY_LABELS: Record<string, string> = {
+  uldc_subcommittee: 'ULDC Sub-Committee',
+  uldc_committee: 'ULDC Committee',
+}
+const returnedByLabel = computed(
+  () => RETURNED_BY_LABELS[progress.value?.submission.returnedBy ?? ''] ?? 'ULDC Sub-Committee',
+)
 const isForBoard = computed(() => progress.value?.submission.status === 'for_board_deliberation')
 const isBoardApproved = computed(() => progress.value?.submission.status === 'board_approved')
 const isUldcDeliberation = computed(() => progress.value?.submission.status === 'uldc_deliberation')
@@ -502,7 +511,7 @@ const groupedItems = computed(() => {
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="isReturned" class="returned-banner">
-          <p><strong>The ULDC Sub-Committee sent this request back for correction.</strong> Fix the flagged document(s) above — everything else stays as-is — then resubmit.</p>
+          <p><strong>The {{ returnedByLabel }} sent this request back for correction.</strong> Fix the flagged document(s) above — everything else stays as-is — then resubmit.</p>
           <button class="begin-btn" :disabled="!readyToResubmit || submitting" @click="resubmitRequest">
             {{ submitting ? 'Resubmitting…' : 'Resubmit Request' }}
           </button>

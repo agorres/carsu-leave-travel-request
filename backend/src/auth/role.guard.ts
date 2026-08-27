@@ -20,6 +20,24 @@ export class ReviewerGuard implements CanActivate {
   }
 }
 
+// ULDC Sub-Committee OR ULDC Committee — document screening actions that
+// both stages now share (approve/reject individual documents, send back
+// for correction). Which submission statuses each role may actually act
+// on is enforced in ChecklistService, keyed off the caller's role, so a
+// Sub-Committee member can't touch Committee-stage documents and vice
+// versa even though both pass this guard.
+@Injectable()
+export class UldcScreeningGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest();
+    const role = request.user?.role;
+    if (role !== 'uldc_subcommittee' && role !== 'uldc_committee') {
+      throw new ForbiddenException('ULDC Sub-Committee or ULDC Committee access required');
+    }
+    return true;
+  }
+}
+
 // ULDC Sub-Committee-only — document screening actions (approve/reject
 // individual documents, send back for correction, forward to the next
 // stage).

@@ -59,6 +59,7 @@ export interface Submission {
   status: SubmissionStatus;
   submittedAt: string | null;
   returnedAt: string | null;
+  returnedBy: string | null;
   uldcApprovedAt: string | null;
   uldcDeliberationAt: string | null;
   adminCouncilEndorsedAt: string | null;
@@ -208,8 +209,9 @@ export function useChecklist() {
     return `${base}/checklist/submissions/${submissionId}/documents/${itemCode}/file${qs}`;
   }
 
-  // ULDC Sub-Committee — approve or reject a single uploaded document, with
-  // an optional (required-if-rejecting) comment for the employee.
+  // ULDC Sub-Committee or ULDC Committee (role is read from the JWT
+  // server-side) — approve or reject a single uploaded document, with an
+  // optional (required-if-rejecting) comment for the employee.
   async function reviewDocument(
     submissionId: string,
     itemCode: string,
@@ -223,7 +225,8 @@ export function useChecklist() {
     });
   }
 
-  // ULDC Sub-Committee — send the request back to the employee (requires 1+ rejected doc).
+  // ULDC Sub-Committee or ULDC Committee — send the request back to the
+  // employee (requires 1+ rejected doc at whichever stage is calling).
   async function returnForCorrection(submissionId: string): Promise<Submission> {
     return $fetch(`${base}/checklist/submissions/${submissionId}/return-for-correction`, {
       method: 'POST',

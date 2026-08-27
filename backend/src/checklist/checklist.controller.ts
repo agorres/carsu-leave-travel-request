@@ -22,7 +22,7 @@ import { ReviewDocumentDto } from './dto/review-document.dto';
 import { RequestType } from './request-type.enum';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { ReviewerGuard, UldcSubcommitteeGuard, UldcCommitteeGuard, BoardGuard, AdminCouncilGuard, PresidentGuard } from '../auth/role.guard';
+import { ReviewerGuard, UldcSubcommitteeGuard, UldcCommitteeGuard, UldcScreeningGuard, BoardGuard, AdminCouncilGuard, PresidentGuard } from '../auth/role.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/current-user.decorator';
 
@@ -167,22 +167,32 @@ export class ChecklistController {
     return this.checklistService.submitSubmission(id);
   }
 
-  // --- ULDC Sub-Committee document screening actions ---
+  // --- ULDC document screening actions (Sub-Committee during initial
+  // screening, Committee during full-body deliberation) ---
 
-  @UseGuards(UldcSubcommitteeGuard)
+  @UseGuards(UldcScreeningGuard)
   @Post('submissions/:id/documents/:itemCode/review')
   reviewDocument(
     @Param('id') submissionId: string,
     @Param('itemCode') itemCode: string,
     @Body() dto: ReviewDocumentDto,
+    @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.checklistService.reviewDocument(submissionId, itemCode, dto);
+    return this.checklistService.reviewDocument(
+      submissionId,
+      itemCode,
+      dto,
+      user.role as 'uldc_subcommittee' | 'uldc_committee',
+    );
   }
 
-  @UseGuards(UldcSubcommitteeGuard)
+  @UseGuards(UldcScreeningGuard)
   @Post('submissions/:id/return-for-correction')
-  returnForCorrection(@Param('id') id: string) {
-    return this.checklistService.returnForCorrection(id);
+  returnForCorrection(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.checklistService.returnForCorrection(
+      id,
+      user.role as 'uldc_subcommittee' | 'uldc_committee',
+    );
   }
 
   @UseGuards(UldcSubcommitteeGuard)

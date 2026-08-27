@@ -107,6 +107,12 @@ export class Submission {
   @Column({ type: 'timestamp', nullable: true })
   returnedAt: Date | null;
 
+  // Which body sent it back — 'uldc_subcommittee' or 'uldc_committee'.
+  // Drives the "The ULDC ___ sent this back" message on the employee's
+  // resubmit screen (see RequestForm.vue) instead of hardcoding one body.
+  @Column({ type: 'varchar', nullable: true })
+  returnedBy: string | null;
+
   // Set when ULDC approves every document during initial screening
   @Column({ type: 'timestamp', nullable: true })
   uldcApprovedAt: Date | null;

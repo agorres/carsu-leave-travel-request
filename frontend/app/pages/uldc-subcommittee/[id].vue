@@ -50,6 +50,13 @@ const typeLabel = computed(() => {
 const statusLabel = computed(() => STATUS_LABELS[progress.value?.submission.status ?? ''] ?? '')
 const isUnderScreening = computed(() => progress.value?.submission.status === 'submitted')
 const isReturned = computed(() => progress.value?.submission.status === 'returned_for_correction')
+const RETURNED_BY_LABELS: Record<string, string> = {
+  uldc_subcommittee: 'ULDC Sub-Committee',
+  uldc_committee: 'ULDC Committee',
+}
+const returnedByLabel = computed(
+  () => RETURNED_BY_LABELS[progress.value?.submission.returnedBy ?? ''] ?? 'ULDC Sub-Committee',
+)
 const isForBoard = computed(() => progress.value?.submission.status === 'for_board_deliberation')
 const isBoardApproved = computed(() => progress.value?.submission.status === 'board_approved')
 // Sub-Committee has no action here — full-body deliberation belongs to the
@@ -191,7 +198,7 @@ onMounted(async () => {
         <section class="admin-card status-card" :class="`status-${progress.submission.status}`">
           <div class="status-row">
             <span class="status-badge" :class="`badge-${progress.submission.status}`">{{ statusLabel }}</span>
-            <span v-if="isReturned" class="muted">Sent back {{ formatDateTime(progress.submission.returnedAt) }}</span>
+            <span v-if="isReturned" class="muted">Sent back by {{ returnedByLabel }} {{ formatDateTime(progress.submission.returnedAt) }}</span>
             <span v-if="isForBoard || isPastUldc || isBoardApproved" class="muted">Approved by ULDC Sub-Committee {{ formatDateTime(progress.submission.uldcApprovedAt) }}</span>
             <span v-if="isBoardApproved" class="muted">Approved by Board {{ formatDateTime(progress.submission.boardApprovedAt) }}</span>
           </div>

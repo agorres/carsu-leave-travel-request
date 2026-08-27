@@ -387,22 +387,32 @@ export class ChecklistService {
 
   /**
    * Admin marks a single uploaded document as approved or rejected.
-   * Only valid while the submission is under active screening
-   * (SUBMITTED) or already sent back but HR is re-checking a fresh
-   * re-upload (RETURNED_FOR_CORRECTION — e.g. reviewing a corrected file
-   * before the employee resubmits).
+   *
+   * Shared by two review stages, gated by the caller's role so neither
+   * can touch the other's stage:
+   *   - uldc_subcommittee: while SUBMITTED (active screening) or
+   *     RETURNED_FOR_CORRECTION (re-checking a fresh re-upload before the
+   *     employee resubmits)
+   *   - uldc_committee: while ULDC_DELIBERATION (full-body deliberation,
+   *     Foreign Travel + IMP only)
    */
   async reviewDocument(
     submissionId: string,
     itemCode: string,
     dto: ReviewDocumentDto,
+    reviewerRole: 'uldc_subcommittee' | 'uldc_committee',
   ): Promise<SubmissionDocument> {
     const submission = await this.getSubmission(submissionId);
-    if (
-      submission.status !== SubmissionStatus.SUBMITTED &&
-      submission.status !== SubmissionStatus.RETURNED_FOR_CORRECTION
-    ) {
-      throw new BadRequestException('This request is not currently under ULDC Sub-Committee screening');
+    const allowedStatuses =
+      reviewerRole === 'uldc_committee'
+        ? [SubmissionStatus.ULDC_DELIBERATION]
+        : [SubmissionStatus.SUBMITTED, SubmissionStatus.RETURNED_FOR_CORRECTION];
+    if (!allowedStatuses.includes(submission.status)) {
+      throw new BadRequestException(
+        reviewerRole === 'uldc_committee'
+          ? 'This request is not currently under ULDC Committee deliberation'
+          : 'This request is not currently under ULDC Sub-Committee screening',
+      );
     }
 
     if (dto.status === DocumentReviewStatus.REJECTED && !dto.comment?.trim()) {
@@ -419,13 +429,21 @@ export class ChecklistService {
   }
 
   /**
-   * Admin sends the whole request back to the employee for correction.
-   * Requires at least one rejected document — otherwise there's nothing
-   * for the employee to fix.
+   * Sends the whole request back to the employee for correction. Requires
+   * at least one rejected document — otherwise there's nothing for the
+   * employee to fix. Regardless of which stage sends it back, it lands on
+   * the same RETURNED_FOR_CORRECTION status — resubmitting always routes
+   * back through ULDC Sub-Committee re-screening first (see
+   * submitSubmission), which then re-forwards it to wherever it left off.
    */
-  async returnForCorrection(submissionId: string): Promise<Submission> {
+  async returnForCorrection(
+    submissionId: string,
+    reviewerRole: 'uldc_subcommittee' | 'uldc_committee',
+  ): Promise<Submission> {
     const submission = await this.getSubmission(submissionId);
-    if (submission.status !== SubmissionStatus.SUBMITTED) {
+    const requiredStatus =
+      reviewerRole === 'uldc_committee' ? SubmissionStatus.ULDC_DELIBERATION : SubmissionStatus.SUBMITTED;
+    if (submission.status !== requiredStatus) {
       throw new BadRequestException('Only a request currently under screening can be returned');
     }
 
@@ -442,8 +460,14 @@ export class ChecklistService {
     await this.submissionRepo.update(submissionId, {
       status: SubmissionStatus.RETURNED_FOR_CORRECTION,
       returnedAt,
+      returnedBy: reviewerRole,
     });
-    return { ...submission, status: SubmissionStatus.RETURNED_FOR_CORRECTION, returnedAt };
+    return {
+      ...submission,
+      status: SubmissionStatus.RETURNED_FOR_CORRECTION,
+      returnedAt,
+      returnedBy: reviewerRole,
+    };
   }
 
   /**
@@ -484,11 +508,22 @@ export class ChecklistService {
   /**
    * Foreign Travel + IMP only. ULDC concludes full-body deliberation
    * (the stage after initial screening) and forwards to Admin Council.
+   * Only allowed once every required document is (still) individually
+   * approved — same gating as Sub-Committee's approveSubmission.
    */
   async concludeUldcDeliberation(submissionId: string): Promise<Submission> {
     const submission = await this.getSubmission(submissionId);
     if (submission.status !== SubmissionStatus.ULDC_DELIBERATION) {
       throw new BadRequestException('Only a request under ULDC deliberation can be forwarded from here');
+    }
+
+    const requiredItems = this.getRequiredItems(submission.requestType, submission.isAbroad);
+    const allApproved = requiredItems.every((item) => {
+      const doc = submission.documents.find((d) => d.itemCode === item.code);
+      return doc?.reviewStatus === DocumentReviewStatus.APPROVED;
+    });
+    if (!allApproved) {
+      throw new BadRequestException('Every document must be individually approved first');
     }
 
     const uldcDeliberationAt = new Date();
