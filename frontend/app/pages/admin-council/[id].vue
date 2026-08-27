@@ -154,7 +154,7 @@ onMounted(async () => {
             </div>
             <div class="info-field">
               <span class="info-label">Submitted</span>
-              <span class="info-value">{{ formatDate(progress.submission.submittedAt) }}</span>
+              <span class="info-value">{{ formatDateTime(progress.submission.submittedAt) }}</span>
             </div>
           </div>
         </section>

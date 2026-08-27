@@ -227,6 +227,10 @@ onMounted(async () => {
               <span class="info-label">Years in Position / CSU</span>
               <span class="info-value">{{ progress.submission.yearsInPosition }} / {{ progress.submission.yearsInCsu }}</span>
             </div>
+            <div class="info-field">
+              <span class="info-label">Submitted</span>
+              <span class="info-value">{{ formatDateTime(progress.submission.submittedAt) }}</span>
+            </div>
           </div>
         </section>
 

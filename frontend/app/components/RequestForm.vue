@@ -61,6 +61,18 @@ const infoComplete = computed(() => {
 const readyToSubmit = computed(() => progress.value?.submission.status === 'complete')
 const isSubmitted = computed(() => progress.value?.submission.status === 'submitted')
 const isReturned = computed(() => progress.value?.submission.status === 'returned_for_correction')
+// Matches the date+time format used on every reviewer page, so timestamps
+// read consistently everywhere in the app (was date-only here before).
+function formatDateTime(value: string | null) {
+  if (!value) return ''
+  return new Date(value).toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
 // Which body actually sent it back — defaults to Sub-Committee for older
 // records saved before returnedBy existed.
 const RETURNED_BY_LABELS: Record<string, string> = {
@@ -471,27 +483,27 @@ const groupedItems = computed(() => {
         </div>
 
         <div v-if="isPresidentApproved" class="complete-banner approved-banner">
-          <p>✓ Request approved by the President{{ progress.submission.presidentApprovedAt ? ' on ' + new Date(progress.submission.presidentApprovedAt).toLocaleDateString() : '' }}. No further action needed.</p>
+          <p>✓ Request approved by the President{{ progress.submission.presidentApprovedAt ? ' on ' + formatDateTime(progress.submission.presidentApprovedAt) : '' }}. No further action needed.</p>
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="isBoardApproved" class="complete-banner approved-banner">
-          <p>✓ Request approved by the Board{{ progress.submission.boardApprovedAt ? ' on ' + new Date(progress.submission.boardApprovedAt).toLocaleDateString() : '' }}. No further action needed.</p>
+          <p>✓ Request approved by the Board{{ progress.submission.boardApprovedAt ? ' on ' + formatDateTime(progress.submission.boardApprovedAt) : '' }}. No further action needed.</p>
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="isForPresidentApproval" class="complete-banner approved-banner">
-          <p>✓ Confirmed by the Board{{ progress.submission.boardConfirmedAt ? ' on ' + new Date(progress.submission.boardConfirmedAt).toLocaleDateString() : '' }} and forwarded to the President for final approval.</p>
+          <p>✓ Confirmed by the Board{{ progress.submission.boardConfirmedAt ? ' on ' + formatDateTime(progress.submission.boardConfirmedAt) : '' }} and forwarded to the President for final approval.</p>
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="isForBoardApproval" class="complete-banner approved-banner">
-          <p>✓ Endorsed by the President{{ progress.submission.presidentEndorsedAt ? ' on ' + new Date(progress.submission.presidentEndorsedAt).toLocaleDateString() : '' }} and forwarded to the Board for final approval.</p>
+          <p>✓ Endorsed by the President{{ progress.submission.presidentEndorsedAt ? ' on ' + formatDateTime(progress.submission.presidentEndorsedAt) : '' }} and forwarded to the Board for final approval.</p>
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="isForBoardConfirmation" class="complete-banner approved-banner">
-          <p>✓ Endorsed by the Admin Council{{ progress.submission.adminCouncilEndorsedAt ? ' on ' + new Date(progress.submission.adminCouncilEndorsedAt).toLocaleDateString() : '' }} and forwarded to the Board for confirmation.</p>
+          <p>✓ Endorsed by the Admin Council{{ progress.submission.adminCouncilEndorsedAt ? ' on ' + formatDateTime(progress.submission.adminCouncilEndorsedAt) : '' }} and forwarded to the Board for confirmation.</p>
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="isForPresidentEndorsement" class="complete-banner approved-banner">
-          <p>✓ Endorsed by the Admin Council{{ progress.submission.adminCouncilEndorsedAt ? ' on ' + new Date(progress.submission.adminCouncilEndorsedAt).toLocaleDateString() : '' }} and forwarded to the President for endorsement.</p>
+          <p>✓ Endorsed by the Admin Council{{ progress.submission.adminCouncilEndorsedAt ? ' on ' + formatDateTime(progress.submission.adminCouncilEndorsedAt) : '' }} and forwarded to the President for endorsement.</p>
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="isForAdminCouncil" class="complete-banner approved-banner">
@@ -499,15 +511,15 @@ const groupedItems = computed(() => {
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="isUldcDeliberation" class="complete-banner approved-banner">
-          <p>✓ Approved by the ULDC Sub-Committee{{ progress.submission.uldcApprovedAt ? ' on ' + new Date(progress.submission.uldcApprovedAt).toLocaleDateString() : '' }} and now under full ULDC Committee deliberation.</p>
+          <p>✓ Approved by the ULDC Sub-Committee{{ progress.submission.uldcApprovedAt ? ' on ' + formatDateTime(progress.submission.uldcApprovedAt) : '' }} and now under full ULDC Committee deliberation.</p>
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="isForBoard" class="complete-banner approved-banner">
-          <p>✓ Approved by the ULDC Sub-Committee{{ progress.submission.uldcApprovedAt ? ' on ' + new Date(progress.submission.uldcApprovedAt).toLocaleDateString() : '' }} and forwarded to the Board for final deliberation.</p>
+          <p>✓ Approved by the ULDC Sub-Committee{{ progress.submission.uldcApprovedAt ? ' on ' + formatDateTime(progress.submission.uldcApprovedAt) : '' }} and forwarded to the Board for final deliberation.</p>
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="isSubmitted" class="complete-banner">
-          <p>✓ Request submitted{{ progress.submission.submittedAt ? ' on ' + new Date(progress.submission.submittedAt).toLocaleDateString() : '' }} and under ULDC Sub-Committee screening. This request is locked until the ULDC Sub-Committee responds.</p>
+          <p>✓ Request submitted{{ progress.submission.submittedAt ? ' on ' + formatDateTime(progress.submission.submittedAt) : '' }} and under ULDC Sub-Committee screening. This request is locked until the ULDC Sub-Committee responds.</p>
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="isReturned" class="returned-banner">
