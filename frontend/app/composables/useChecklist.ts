@@ -204,8 +204,15 @@ export function useChecklist() {
   // Document downloads are plain <a>/img src links, which can't carry an
   // Authorization header — append the token as a query param instead.
   // (The backend accepts either; see jwt-auth.guard.ts.)
-  function getDocumentDownloadUrl(submissionId: string, itemCode: string): string {
-    const qs = token.value ? `?token=${encodeURIComponent(token.value)}` : '';
+  function getDocumentDownloadUrl(
+    submissionId: string,
+    itemCode: string,
+    opts?: { download?: boolean },
+  ): string {
+    const params = new URLSearchParams();
+    if (token.value) params.set('token', token.value);
+    if (opts?.download) params.set('download', '1');
+    const qs = params.toString() ? `?${params.toString()}` : '';
     return `${base}/checklist/submissions/${submissionId}/documents/${itemCode}/file${qs}`;
   }
 

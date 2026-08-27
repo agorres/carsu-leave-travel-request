@@ -354,6 +354,13 @@ export class ChecklistService {
    * RETURNED_FOR_CORRECTION). Either way it locks the submission for HR
    * screening.
    */
+  /**
+   * Employee resubmits after a correction. Routes back to whichever body
+   * sent it back (see returnedBy) — Sub-Committee rejections go back to
+   * Sub-Committee screening, Committee rejections go straight back to
+   * Committee deliberation. Skips the other stage entirely; it's not a
+   * second gate, just a return to whoever flagged it.
+   */
   async submitSubmission(id: string): Promise<Submission> {
     const submission = await this.getSubmission(id);
 
@@ -369,6 +376,7 @@ export class ChecklistService {
       throw new BadRequestException('Cannot submit — required documents are still missing');
     }
 
+    let nextStatus = SubmissionStatus.SUBMITTED;
     if (submission.status === SubmissionStatus.RETURNED_FOR_CORRECTION) {
       const stillRejected = submission.documents.some(
         (d) => d.reviewStatus === DocumentReviewStatus.REJECTED,
@@ -378,11 +386,15 @@ export class ChecklistService {
           'Please re-upload every document HR flagged before resubmitting',
         );
       }
+      nextStatus =
+        submission.returnedBy === 'uldc_committee'
+          ? SubmissionStatus.ULDC_DELIBERATION
+          : SubmissionStatus.SUBMITTED;
     }
 
     const submittedAt = new Date();
-    await this.submissionRepo.update(id, { status: SubmissionStatus.SUBMITTED, submittedAt });
-    return { ...submission, status: SubmissionStatus.SUBMITTED, submittedAt };
+    await this.submissionRepo.update(id, { status: nextStatus, submittedAt });
+    return { ...submission, status: nextStatus, submittedAt };
   }
 
   /**
@@ -431,10 +443,9 @@ export class ChecklistService {
   /**
    * Sends the whole request back to the employee for correction. Requires
    * at least one rejected document — otherwise there's nothing for the
-   * employee to fix. Regardless of which stage sends it back, it lands on
-   * the same RETURNED_FOR_CORRECTION status — resubmitting always routes
-   * back through ULDC Sub-Committee re-screening first (see
-   * submitSubmission), which then re-forwards it to wherever it left off.
+   * employee to fix. Records which body did it (returnedBy) — see
+   * submitSubmission, which uses that to route the resubmission straight
+   * back to whichever body rejected it.
    */
   async returnForCorrection(
     submissionId: string,

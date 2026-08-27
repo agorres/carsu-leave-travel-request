@@ -6,6 +6,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   Res,
   UploadedFile,
   UseGuards,
@@ -113,11 +114,15 @@ export class ChecklistController {
     @Param('itemCode') itemCode: string,
     @CurrentUser() user: CurrentUserPayload,
     @Res() res: Response,
+    @Query('download') download?: string,
   ) {
     await this.assertOwnerOrAdmin(submissionId, user);
     const doc = await this.checklistService.getDocumentForDownload(submissionId, itemCode);
     const absolutePath = join(process.cwd(), doc.storagePath);
-    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(doc.originalFileName)}"`);
+    // "inline" lets the browser preview the file in a new tab (View File);
+    // "attachment" forces an actual download instead (Download button).
+    const disposition = download ? 'attachment' : 'inline';
+    res.setHeader('Content-Disposition', `${disposition}; filename="${encodeURIComponent(doc.originalFileName)}"`);
     res.type(doc.mimeType);
     res.sendFile(absolutePath);
   }

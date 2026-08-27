@@ -276,6 +276,14 @@ onMounted(async () => {
                     >
                       View File →
                     </a>
+                    <a
+                      v-if="docFor(item.code)"
+                      :href="getDocumentDownloadUrl(progress.submission.id, item.code, { download: true })"
+                      class="view-link"
+                      :download="docFor(item.code)!.originalFileName"
+                    >
+                      Download ↓
+                    </a>
                   </div>
                 </td>
                 <td>
@@ -487,6 +495,8 @@ onMounted(async () => {
   font-weight: 600;
   text-decoration: none;
   font-size: 13px;
+  margin-right: 12px;
+  display: inline-block;
 }
 .view-link:hover {
   text-decoration: underline;
