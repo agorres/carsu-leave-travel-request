@@ -20,6 +20,7 @@ export enum SubmissionStatus {
 
   // --- Foreign Travel + IMP flow only ---
   ULDC_DELIBERATION = 'uldc_deliberation', // ULDC screening passed — now under full ULDC body deliberation
+  FOR_PRESIDENT_REFERENCE = 'for_president_reference', // ULDC Committee concluded deliberation — awaiting the President's reference slip before Admin Council
   FOR_BOARD_CONFIRMATION = 'for_board_confirmation', // Admin Council endorsed — forwarded to the Board to confirm
   FOR_PRESIDENT_APPROVAL = 'for_president_approval', // Board confirmed — forwarded to the President
   PRESIDENT_APPROVED = 'president_approved', // President approved — final state (IMP path)
@@ -39,6 +40,7 @@ export const LOCKED_SUBMISSION_STATUSES: SubmissionStatus[] = [
   SubmissionStatus.SUBMITTED,
   SubmissionStatus.FOR_BOARD_DELIBERATION,
   SubmissionStatus.ULDC_DELIBERATION,
+  SubmissionStatus.FOR_PRESIDENT_REFERENCE,
   SubmissionStatus.FOR_ADMIN_COUNCIL,
   SubmissionStatus.FOR_BOARD_CONFIRMATION,
   SubmissionStatus.FOR_PRESIDENT_APPROVAL,
@@ -120,6 +122,22 @@ export class Submission {
   // Foreign Travel + IMP only — set when ULDC concludes full-body deliberation
   @Column({ type: 'timestamp', nullable: true })
   uldcDeliberationAt: Date | null;
+
+  // Foreign Travel + IMP only — set when the President uploads the signed
+  // reference slip forwarding the request onward to Admin Council.
+  @Column({ type: 'timestamp', nullable: true })
+  presidentReferencedAt: Date | null;
+
+  // The signed reference slip file itself (path/key in storage — same
+  // pattern as SubmissionDocument.storagePath).
+  @Column({ type: 'varchar', nullable: true })
+  referenceSlipStoragePath: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  referenceSlipOriginalFileName: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  referenceSlipMimeType: string | null;
 
   // Foreign Travel only — set when Admin Council endorses the request
   @Column({ type: 'timestamp', nullable: true })

@@ -27,6 +27,7 @@ const STATUS_LABELS: Record<string, string> = {
   returned_for_correction: 'Returned for Correction',
   for_board_deliberation: 'For Board Deliberation',
   uldc_deliberation: 'Under ULDC Committee Deliberation',
+  for_president_reference: 'For President\'s Reference',
   for_admin_council: 'For Admin Council',
   for_board_confirmation: 'For Board Confirmation',
   for_president_approval: 'For President Approval',
@@ -244,6 +245,10 @@ onMounted(async () => {
   color: #1a5fb4;
 }
 .pill-uldc_deliberation {
+  background: #fff4d6;
+  color: #8a6300;
+}
+.pill-for_president_reference {
   background: #fff4d6;
   color: #8a6300;
 }

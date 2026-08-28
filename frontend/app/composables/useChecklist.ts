@@ -31,6 +31,7 @@ export type SubmissionStatus =
   | 'for_board_deliberation'
   // Foreign Travel + IMP only
   | 'uldc_deliberation'
+  | 'for_president_reference'
   | 'for_board_confirmation'
   | 'for_president_approval'
   | 'president_approved'
@@ -62,6 +63,8 @@ export interface Submission {
   returnedBy: string | null;
   uldcApprovedAt: string | null;
   uldcDeliberationAt: string | null;
+  presidentReferencedAt: string | null;
+  referenceSlipOriginalFileName: string | null;
   adminCouncilEndorsedAt: string | null;
   boardConfirmedAt: string | null;
   presidentApprovedAt: string | null;
@@ -285,6 +288,29 @@ export function useChecklist() {
     });
   }
 
+  // Foreign Travel + IMP only — President uploads the signed reference
+  // slip, referring the request onward to Admin Council. Sits between
+  // concludeUldcDeliberation and adminCouncilEndorse.
+  async function submitPresidentReference(submissionId: string, file: File): Promise<Submission> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return $fetch(`${base}/checklist/submissions/${submissionId}/president-reference`, {
+      method: 'POST',
+      body: formData,
+      headers: authHeaders(),
+    });
+  }
+
+  // Reference slip download — same pattern as getDocumentDownloadUrl
+  // (plain link, token passed as a query param).
+  function getReferenceSlipDownloadUrl(submissionId: string, opts?: { download?: boolean }): string {
+    const params = new URLSearchParams();
+    if (token.value) params.set('token', token.value);
+    if (opts?.download) params.set('download', '1');
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return `${base}/checklist/submissions/${submissionId}/reference-slip/file${qs}`;
+  }
+
   // Foreign Travel + IMP only — President's final approval.
   async function presidentApprove(submissionId: string): Promise<Submission> {
     return $fetch(`${base}/checklist/submissions/${submissionId}/president-approve`, {
@@ -322,6 +348,8 @@ export function useChecklist() {
     concludeUldcDeliberation,
     adminCouncilEndorse,
     boardConfirm,
+    submitPresidentReference,
+    getReferenceSlipDownloadUrl,
     presidentApprove,
     presidentEndorse,
   };

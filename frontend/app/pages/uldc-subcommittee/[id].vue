@@ -33,6 +33,7 @@ const STATUS_LABELS: Record<string, string> = {
   returned_for_correction: 'Returned for Correction',
   for_board_deliberation: 'For Board Deliberation',
   uldc_deliberation: 'Under ULDC Committee Deliberation',
+  for_president_reference: 'For President\'s Reference',
   for_admin_council: 'For Admin Council',
   for_board_confirmation: 'For Board Confirmation',
   for_president_approval: 'For President Approval',
@@ -63,7 +64,7 @@ const isBoardApproved = computed(() => progress.value?.submission.status === 'bo
 // ULDC Committee. This request just shows up here for tracking.
 const isPastUldc = computed(() => {
   const s = progress.value?.submission.status
-  return s === 'uldc_deliberation' || s === 'for_admin_council' || s === 'for_board_confirmation' || s === 'for_president_approval' ||
+  return s === 'uldc_deliberation' || s === 'for_president_reference' || s === 'for_admin_council' || s === 'for_board_confirmation' || s === 'for_president_approval' ||
     s === 'president_approved' || s === 'for_president_endorsement' || s === 'for_board_approval' || s === 'board_approved'
 })
 
@@ -266,7 +267,7 @@ onMounted(async () => {
                 <td>
                   <span v-if="docFor(item.code)">{{ docFor(item.code)!.originalFileName }}</span>
                   <span v-else class="error-text">Not provided</span>
-                  <div>
+                                    <div>
                     <a
                       v-if="docFor(item.code)"
                       :href="getDocumentDownloadUrl(progress.submission.id, item.code)"
@@ -535,6 +536,10 @@ onMounted(async () => {
   color: #1a5fb4;
 }
 .badge-uldc_deliberation {
+  background: #fff4d6;
+  color: #8a6300;
+}
+.badge-for_president_reference {
   background: #fff4d6;
   color: #8a6300;
 }

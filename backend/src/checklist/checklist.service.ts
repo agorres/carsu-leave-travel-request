@@ -126,6 +126,7 @@ export class ChecklistService {
           SubmissionStatus.RETURNED_FOR_CORRECTION,
           SubmissionStatus.FOR_BOARD_DELIBERATION,
           SubmissionStatus.ULDC_DELIBERATION,
+          SubmissionStatus.FOR_PRESIDENT_REFERENCE,
           SubmissionStatus.FOR_ADMIN_COUNCIL,
           SubmissionStatus.FOR_BOARD_CONFIRMATION,
           SubmissionStatus.FOR_PRESIDENT_APPROVAL,
@@ -150,6 +151,7 @@ export class ChecklistService {
       where: {
         status: In([
           SubmissionStatus.ULDC_DELIBERATION,
+          SubmissionStatus.FOR_PRESIDENT_REFERENCE,
           SubmissionStatus.FOR_ADMIN_COUNCIL,
           SubmissionStatus.FOR_BOARD_CONFIRMATION,
           SubmissionStatus.FOR_PRESIDENT_APPROVAL,
@@ -208,13 +210,17 @@ export class ChecklistService {
 
   /**
    * President view (Foreign Travel only): requests awaiting the
-   * President's endorsement (non-IMP) or final approval (IMP), plus
+   * President's reference slip (IMP, right after ULDC Committee
+   * deliberation), endorsement (non-IMP), or final approval (IMP), plus
    * anything further downstream for tracking.
    */
   async listPresidentSubmissions(): Promise<Submission[]> {
     return this.submissionRepo.find({
       where: {
         status: In([
+          SubmissionStatus.FOR_PRESIDENT_REFERENCE,
+          SubmissionStatus.FOR_ADMIN_COUNCIL,
+          SubmissionStatus.FOR_BOARD_CONFIRMATION,
           SubmissionStatus.FOR_PRESIDENT_APPROVAL,
           SubmissionStatus.PRESIDENT_APPROVED,
           SubmissionStatus.FOR_PRESIDENT_ENDORSEMENT,
@@ -518,9 +524,11 @@ export class ChecklistService {
 
   /**
    * Foreign Travel + IMP only. ULDC concludes full-body deliberation
-   * (the stage after initial screening) and forwards to Admin Council.
-   * Only allowed once every required document is (still) individually
-   * approved — same gating as Sub-Committee's approveSubmission.
+   * (the stage after initial screening) and forwards to the President for
+   * a reference slip (not Admin Council directly — see
+   * submitPresidentReference). Only allowed once every required document
+   * is (still) individually approved — same gating as Sub-Committee's
+   * approveSubmission.
    */
   async concludeUldcDeliberation(submissionId: string): Promise<Submission> {
     const submission = await this.getSubmission(submissionId);
@@ -539,10 +547,50 @@ export class ChecklistService {
 
     const uldcDeliberationAt = new Date();
     await this.submissionRepo.update(submissionId, {
-      status: SubmissionStatus.FOR_ADMIN_COUNCIL,
+      status: SubmissionStatus.FOR_PRESIDENT_REFERENCE,
       uldcDeliberationAt,
     });
-    return { ...submission, status: SubmissionStatus.FOR_ADMIN_COUNCIL, uldcDeliberationAt };
+    return { ...submission, status: SubmissionStatus.FOR_PRESIDENT_REFERENCE, uldcDeliberationAt };
+  }
+
+  /**
+   * Foreign Travel + IMP only. President uploads the signed reference
+   * slip, referring the request onward to the Admin Council. Sits between
+   * ULDC Committee's concludeUldcDeliberation and adminCouncilEndorse.
+   */
+  async submitPresidentReference(
+    submissionId: string,
+    file: { originalname: string; path: string; mimetype: string },
+  ): Promise<Submission> {
+    const submission = await this.getSubmission(submissionId);
+    if (submission.status !== SubmissionStatus.FOR_PRESIDENT_REFERENCE) {
+      throw new BadRequestException('Only a request awaiting the President\'s reference slip can be referred');
+    }
+
+    const presidentReferencedAt = new Date();
+    await this.submissionRepo.update(submissionId, {
+      status: SubmissionStatus.FOR_ADMIN_COUNCIL,
+      presidentReferencedAt,
+      referenceSlipStoragePath: file.path,
+      referenceSlipOriginalFileName: file.originalname,
+      referenceSlipMimeType: file.mimetype,
+    });
+    return {
+      ...submission,
+      status: SubmissionStatus.FOR_ADMIN_COUNCIL,
+      presidentReferencedAt,
+      referenceSlipStoragePath: file.path,
+      referenceSlipOriginalFileName: file.originalname,
+      referenceSlipMimeType: file.mimetype,
+    };
+  }
+
+  async getReferenceSlipForDownload(submissionId: string): Promise<Submission> {
+    const submission = await this.getSubmission(submissionId);
+    if (!submission.referenceSlipStoragePath) {
+      throw new NotFoundException('No reference slip has been uploaded for this request');
+    }
+    return submission;
   }
 
   /**

@@ -127,6 +127,25 @@ export class ChecklistController {
     res.sendFile(absolutePath);
   }
 
+  @Get('submissions/:id/reference-slip/file')
+  async downloadReferenceSlip(
+    @Param('id') submissionId: string,
+    @CurrentUser() user: CurrentUserPayload,
+    @Res() res: Response,
+    @Query('download') download?: string,
+  ) {
+    await this.assertOwnerOrAdmin(submissionId, user);
+    const submission = await this.checklistService.getReferenceSlipForDownload(submissionId);
+    const absolutePath = join(process.cwd(), submission.referenceSlipStoragePath!);
+    const disposition = download ? 'attachment' : 'inline';
+    res.setHeader(
+      'Content-Disposition',
+      `${disposition}; filename="${encodeURIComponent(submission.referenceSlipOriginalFileName!)}"`,
+    );
+    res.type(submission.referenceSlipMimeType!);
+    res.sendFile(absolutePath);
+  }
+
   @Post('submissions/:id/documents')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -225,6 +244,33 @@ export class ChecklistController {
   }
 
   // --- President actions (Foreign Travel only) ---
+
+  // Foreign Travel + IMP only — President uploads the signed reference
+  // slip, referring the request onward to the Admin Council. Sits between
+  // the ULDC Committee concluding deliberation and Admin Council endorsement.
+  @UseGuards(PresidentGuard)
+  @Post('submissions/:id/president-reference')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads/checklist',
+        filename: (_req, file, cb) => {
+          const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+          cb(null, `${unique}${extname(file.originalname)}`);
+        },
+      }),
+      limits: { fileSize: MAX_FILE_SIZE_BYTES },
+      fileFilter: (_req, file, cb) => {
+        if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+          return cb(new Error('Unsupported file type'), false);
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  presidentReference(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+    return this.checklistService.submitPresidentReference(id, file);
+  }
 
   // Foreign Travel + IMP only — final approval.
   @UseGuards(PresidentGuard)

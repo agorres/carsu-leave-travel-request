@@ -29,6 +29,7 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
 const STATUS_LABELS: Record<string, string> = {
   uldc_deliberation: 'Under ULDC Committee Deliberation',
   returned_for_correction: 'Returned for Correction',
+  for_president_reference: 'For President\'s Reference',
   for_admin_council: 'For Admin Council',
   for_board_confirmation: 'For Board Confirmation',
   for_president_approval: 'For President Approval',
@@ -52,7 +53,7 @@ const returnedByLabel = computed(
 )
 const isPastDeliberation = computed(() => {
   const s = progress.value?.submission.status
-  return s === 'for_admin_council' || s === 'for_board_confirmation' || s === 'for_president_approval' || s === 'president_approved'
+  return s === 'for_president_reference' || s === 'for_admin_council' || s === 'for_board_confirmation' || s === 'for_president_approval' || s === 'president_approved'
 })
 
 function formatDate(value: string | null) {
@@ -255,7 +256,7 @@ onMounted(async () => {
                 <td>
                   <span v-if="docFor(item.code)">{{ docFor(item.code)!.originalFileName }}</span>
                   <span v-else class="error-text">Not provided</span>
-                  <div>
+                                   <div>
                     <a
                       v-if="docFor(item.code)"
                       :href="getDocumentDownloadUrl(progress.submission.id, item.code)"
@@ -322,13 +323,13 @@ onMounted(async () => {
 
         <section class="admin-card">
           <div v-if="isUldcDeliberation" class="screening-actions">
-            <p class="muted">Approve or reject each document above, then either send the request back for correction or, once every document is approved, conclude deliberation to forward it to the Admin Council.</p>
+            <p class="muted">Approve or reject each document above, then either send the request back for correction or, once every document is approved, conclude deliberation to forward it to the President for a reference slip.</p>
             <div class="action-buttons">
               <button class="action-btn danger" :disabled="!hasAnyRejected || sendingBack" @click="onSendBack">
                 {{ sendingBack ? 'Sending back…' : 'Send Back for Correction' }}
               </button>
               <button class="action-btn primary" :disabled="!allApproved || concluding" @click="onConcludeDeliberation">
-                {{ concluding ? 'Forwarding…' : 'Conclude Deliberation — Forward to Admin Council' }}
+                {{ concluding ? 'Forwarding…' : 'Conclude Deliberation — Forward to President' }}
               </button>
             </div>
             <p v-if="sendBackError" class="item-error">{{ sendBackError }}</p>
@@ -507,6 +508,10 @@ onMounted(async () => {
   letter-spacing: 0.03em;
 }
 .badge-uldc_deliberation {
+  background: #fff4d6;
+  color: #8a6300;
+}
+.badge-for_president_reference {
   background: #fff4d6;
   color: #8a6300;
 }

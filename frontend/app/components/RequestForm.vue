@@ -85,6 +85,7 @@ const returnedByLabel = computed(
 const isForBoard = computed(() => progress.value?.submission.status === 'for_board_deliberation')
 const isBoardApproved = computed(() => progress.value?.submission.status === 'board_approved')
 const isUldcDeliberation = computed(() => progress.value?.submission.status === 'uldc_deliberation')
+const isForPresidentReference = computed(() => progress.value?.submission.status === 'for_president_reference')
 const isForAdminCouncil = computed(() => progress.value?.submission.status === 'for_admin_council')
 const isForBoardConfirmation = computed(() => progress.value?.submission.status === 'for_board_confirmation')
 const isForPresidentApproval = computed(() => progress.value?.submission.status === 'for_president_approval')
@@ -187,7 +188,7 @@ function recalculateProgress() {
     : 0
   const lockedStatuses = [
     'submitted', 'returned_for_correction',
-    'for_board_deliberation', 'uldc_deliberation', 'for_admin_council',
+    'for_board_deliberation', 'uldc_deliberation', 'for_president_reference', 'for_admin_council',
     'for_board_confirmation', 'for_president_approval', 'president_approved',
     'for_president_endorsement', 'for_board_approval', 'board_approved',
   ]
@@ -273,7 +274,7 @@ function docFor(itemCode: string) {
 function itemEditable(itemCode: string) {
   if (isReturned.value) return canReupload(itemCode)
   if (isSubmitted.value || isForBoard.value || isBoardApproved.value) return false
-  if (isUldcDeliberation.value || isForAdminCouncil.value || isForBoardConfirmation.value) return false
+  if (isUldcDeliberation.value || isForPresidentReference.value || isForAdminCouncil.value || isForBoardConfirmation.value) return false
   if (isForPresidentApproval.value || isPresidentApproved.value) return false
   if (isForPresidentEndorsement.value || isForBoardApproval.value) return false
   return true
@@ -507,7 +508,12 @@ const groupedItems = computed(() => {
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="isForAdminCouncil" class="complete-banner approved-banner">
-          <p>✓ Approved by the ULDC Sub-Committee and forwarded to the Admin Council for endorsement.</p>
+          <p v-if="progress.submission.isImp">✓ Referred by the President{{ progress.submission.presidentReferencedAt ? ' on ' + formatDateTime(progress.submission.presidentReferencedAt) : '' }} and forwarded to the Admin Council for endorsement.</p>
+          <p v-else>✓ Approved by the ULDC Sub-Committee and forwarded to the Admin Council for endorsement.</p>
+          <button class="begin-btn" @click="startNewRequest">Back</button>
+        </div>
+        <div v-else-if="isForPresidentReference" class="complete-banner approved-banner">
+          <p>✓ ULDC Committee deliberation concluded{{ progress.submission.uldcDeliberationAt ? ' on ' + formatDateTime(progress.submission.uldcDeliberationAt) : '' }} and forwarded to the President for a reference slip.</p>
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="isUldcDeliberation" class="complete-banner approved-banner">

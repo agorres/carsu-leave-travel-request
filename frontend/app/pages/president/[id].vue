@@ -10,7 +10,7 @@ const route = useRoute()
 const id = route.params.id as string
 const router = useRouter()
 
-const { getProgress, getDocumentDownloadUrl, presidentApprove, presidentEndorse } = useChecklist()
+const { getProgress, getDocumentDownloadUrl, getReferenceSlipDownloadUrl, submitPresidentReference, presidentApprove, presidentEndorse } = useChecklist()
 const { user, logout } = useAuth()
 
 const progress = ref<SubmissionProgress | null>(null)
@@ -27,6 +27,9 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
 }
 
 const STATUS_LABELS: Record<string, string> = {
+  for_president_reference: 'For Reference Slip',
+  for_admin_council: 'Referred — With Admin Council',
+  for_board_confirmation: 'Referred — With Board',
   for_president_approval: 'For Final Approval',
   president_approved: 'Approved by President',
   for_president_endorsement: 'For Endorsement',
@@ -40,7 +43,11 @@ const typeLabel = computed(() => {
 })
 
 const statusLabel = computed(() => STATUS_LABELS[progress.value?.submission.status ?? ''] ?? '')
-// IMP path: President gives final approval.
+// IMP path: ULDC Committee concludes deliberation -> President refers
+// (uploads a signed reference slip) -> Admin Council -> Board -> President approves.
+const isForPresidentReference = computed(() => progress.value?.submission.status === 'for_president_reference')
+const isForAdminCouncil = computed(() => progress.value?.submission.status === 'for_admin_council')
+const isForBoardConfirmation = computed(() => progress.value?.submission.status === 'for_board_confirmation')
 const isForPresidentApproval = computed(() => progress.value?.submission.status === 'for_president_approval')
 const isPresidentApproved = computed(() => progress.value?.submission.status === 'president_approved')
 // non-IMP path: President endorses, forwards to Board for final approval.
@@ -59,6 +66,31 @@ function formatDateTime(value: string | null) {
 
 function docFor(itemCode: string) {
   return progress.value?.submission.documents.find((d) => d.itemCode === itemCode)
+}
+
+const referenceFile = ref<File | null>(null)
+const referring = ref(false)
+const referenceError = ref('')
+function onReferenceFileChange(e: Event) {
+  const target = e.target as HTMLInputElement
+  referenceFile.value = target.files?.[0] ?? null
+}
+async function onSubmitReference() {
+  if (!referenceFile.value) {
+    referenceError.value = 'Please choose the signed reference slip file first.'
+    return
+  }
+  referring.value = true
+  referenceError.value = ''
+  try {
+    const updated = await submitPresidentReference(id, referenceFile.value)
+    if (progress.value) progress.value.submission = { ...progress.value.submission, ...updated }
+    referenceFile.value = null
+  } catch (e: any) {
+    referenceError.value = e?.data?.message || 'Could not submit the reference slip.'
+  } finally {
+    referring.value = false
+  }
 }
 
 const approving = ref(false)
@@ -127,6 +159,8 @@ onMounted(async () => {
           <div class="status-row">
             <span class="status-badge" :class="`badge-${progress.submission.status}`">{{ statusLabel }}</span>
             <span class="muted">Approved by ULDC {{ formatDateTime(progress.submission.uldcApprovedAt) }}</span>
+            <span v-if="progress.submission.uldcDeliberationAt" class="muted">ULDC Deliberation concluded {{ formatDateTime(progress.submission.uldcDeliberationAt) }}</span>
+            <span v-if="progress.submission.presidentReferencedAt" class="muted">Referred by President {{ formatDateTime(progress.submission.presidentReferencedAt) }}</span>
             <span class="muted">Endorsed by Admin Council {{ formatDateTime(progress.submission.adminCouncilEndorsedAt) }}</span>
             <span v-if="isForPresidentApproval || isPresidentApproved" class="muted">Confirmed by Board {{ formatDateTime(progress.submission.boardConfirmedAt) }}</span>
             <span v-if="isPresidentApproved" class="muted">Approved by President {{ formatDateTime(progress.submission.presidentApprovedAt) }}</span>
@@ -227,7 +261,34 @@ onMounted(async () => {
         </section>
 
         <section class="admin-card">
-          <div v-if="isForPresidentApproval" class="screening-actions">
+          <div v-if="isForPresidentReference" class="screening-actions">
+            <p class="muted">The ULDC Committee has concluded deliberation on this Foreign Travel (IMP) request. Upload the signed reference slip to refer it onward to the Admin Council.</p>
+            <div class="action-buttons">
+              <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" @change="onReferenceFileChange" />
+              <button class="action-btn primary" :disabled="referring" @click="onSubmitReference">
+                {{ referring ? 'Submitting…' : 'Submit Reference Slip' }}
+              </button>
+            </div>
+            <p v-if="referenceError" class="item-error">{{ referenceError }}</p>
+          </div>
+
+          <div v-else-if="isForAdminCouncil || isForBoardConfirmation" class="screening-actions">
+            <p class="muted">
+              ✓ You referred this request on {{ formatDateTime(progress.submission.presidentReferencedAt) }}.
+              <a
+                v-if="progress.submission.referenceSlipOriginalFileName"
+                :href="getReferenceSlipDownloadUrl(progress.submission.id)"
+                class="view-link"
+                target="_blank"
+                rel="noopener"
+              >
+                View Reference Slip →
+              </a>
+              It is now {{ statusLabel.toLowerCase() }} — no further action needed here yet.
+            </p>
+          </div>
+
+          <div v-else-if="isForPresidentApproval" class="screening-actions">
             <p class="muted">The Board has confirmed this Foreign Travel (IMP) request. Review the documents above, then record final approval.</p>
             <div class="action-buttons">
               <button class="action-btn primary" :disabled="approving" @click="onApprove">
@@ -415,6 +476,18 @@ onMounted(async () => {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+}
+.badge-for_president_reference {
+  background: #fff4d6;
+  color: #8a6300;
+}
+.badge-for_admin_council {
+  background: #f1e8fd;
+  color: #5a2ca0;
+}
+.badge-for_board_confirmation {
+  background: #eaf3ff;
+  color: #1a5fb4;
 }
 .badge-for_president_approval,
 .badge-for_president_endorsement {

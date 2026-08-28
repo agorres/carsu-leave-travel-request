@@ -23,6 +23,9 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
 }
 
 const STATUS_LABELS: Record<string, string> = {
+  for_president_reference: 'For Reference Slip',
+  for_admin_council: 'Referred — With Admin Council',
+  for_board_confirmation: 'Referred — With Board',
   for_president_approval: 'For Final Approval',
   president_approved: 'Approved',
   for_president_endorsement: 'For Endorsement',
@@ -224,6 +227,18 @@ onMounted(async () => {
   border-radius: 14px;
   font-size: 11.5px;
   font-weight: 700;
+}
+.pill-for_president_reference {
+  background: #fff4d6;
+  color: #8a6300;
+}
+.pill-for_admin_council {
+  background: #f1e8fd;
+  color: #5a2ca0;
+}
+.pill-for_board_confirmation {
+  background: #eaf3ff;
+  color: #1a5fb4;
 }
 .pill-for_president_approval,
 .pill-for_president_endorsement {
