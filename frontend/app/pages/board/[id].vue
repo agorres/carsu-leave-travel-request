@@ -10,7 +10,7 @@ const route = useRoute()
 const id = route.params.id as string
 const router = useRouter()
 
-const { getProgress, getDocumentDownloadUrl, boardApproveSubmission, boardConfirm } = useChecklist()
+const { getProgress, getDocumentDownloadUrl, getReferenceSlipDownloadUrl, getCertificationDownloadUrl, boardApproveSubmission, boardConfirm } = useChecklist()
 const { user, logout } = useAuth()
 
 const progress = ref<SubmissionProgress | null>(null)
@@ -132,6 +132,26 @@ onMounted(async () => {
             <span v-if="isForPresidentApproval || isPresidentApproved" class="muted">Confirmed by Board {{ formatDateTime(progress.submission.boardConfirmedAt) }}</span>
             <span v-if="isPresidentApproved" class="muted">Approved by President {{ formatDateTime(progress.submission.presidentApprovedAt) }}</span>
             <span v-if="isBoardApproved" class="muted">Approved by Board {{ formatDateTime(progress.submission.boardApprovedAt) }}</span>
+          </div>
+                    <div v-if="progress.submission.referenceSlipOriginalFileName || progress.submission.certificationOriginalFileName" class="status-row">
+            <a
+              v-if="progress.submission.referenceSlipOriginalFileName"
+              :href="getReferenceSlipDownloadUrl(progress.submission.id)"
+              class="view-link"
+              target="_blank"
+              rel="noopener"
+            >
+              View Reference Slip →
+            </a>
+            <a
+              v-if="progress.submission.certificationOriginalFileName"
+              :href="getCertificationDownloadUrl(progress.submission.id)"
+              class="view-link"
+              target="_blank"
+              rel="noopener"
+            >
+              View Certification →
+            </a>
           </div>
         </section>
 

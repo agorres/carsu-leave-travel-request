@@ -10,7 +10,7 @@ const route = useRoute()
 const id = route.params.id as string
 const router = useRouter()
 
-const { getProgress, getDocumentDownloadUrl, getReferenceSlipDownloadUrl, submitPresidentReference, presidentApprove, presidentEndorse } = useChecklist()
+const { getProgress, getDocumentDownloadUrl, getReferenceSlipDownloadUrl, getCertificationDownloadUrl, submitPresidentReference, presidentApprove, presidentEndorse } = useChecklist()
 const { user, logout } = useAuth()
 
 const progress = ref<SubmissionProgress | null>(null)
@@ -167,6 +167,26 @@ onMounted(async () => {
             <span v-if="isForBoardApproval || isBoardApproved" class="muted">Endorsed by President {{ formatDateTime(progress.submission.presidentEndorsedAt) }}</span>
             <span v-if="isBoardApproved" class="muted">Approved by Board {{ formatDateTime(progress.submission.boardApprovedAt) }}</span>
           </div>
+          <div v-if="progress.submission.referenceSlipOriginalFileName || progress.submission.certificationOriginalFileName" class="status-row">
+            
+              v-if="progress.submission.referenceSlipOriginalFileName"
+              :href="getReferenceSlipDownloadUrl(progress.submission.id)"
+              class="view-link"
+              target="_blank"
+              rel="noopener"
+            >
+              View Reference Slip →
+            </a>
+            
+              v-if="progress.submission.certificationOriginalFileName"
+              :href="getCertificationDownloadUrl(progress.submission.id)"
+              class="view-link"
+              target="_blank"
+              rel="noopener"
+            >
+              View Certification →
+            </a>
+          </div>
         </section>
 
         <section class="admin-card">
@@ -231,7 +251,7 @@ onMounted(async () => {
                   <span v-if="docFor(item.code)">{{ docFor(item.code)!.originalFileName }}</span>
                   <span v-else class="error-text">Not provided</span>
                   <div>
-                    <a
+                    
                       v-if="docFor(item.code)"
                       :href="getDocumentDownloadUrl(progress.submission.id, item.code)"
                       class="view-link"
@@ -274,17 +294,7 @@ onMounted(async () => {
 
           <div v-else-if="isForAdminCouncil || isForBoardConfirmation" class="screening-actions">
             <p class="muted">
-              ✓ You referred this request on {{ formatDateTime(progress.submission.presidentReferencedAt) }}.
-              <a
-                v-if="progress.submission.referenceSlipOriginalFileName"
-                :href="getReferenceSlipDownloadUrl(progress.submission.id)"
-                class="view-link"
-                target="_blank"
-                rel="noopener"
-              >
-                View Reference Slip →
-              </a>
-              It is now {{ statusLabel.toLowerCase() }} — no further action needed here yet.
+              ✓ You referred this request on {{ formatDateTime(progress.submission.presidentReferencedAt) }}. It is now {{ statusLabel.toLowerCase() }} — no further action needed here yet.
             </p>
           </div>
 
