@@ -127,22 +127,22 @@ export class ChecklistController {
     res.sendFile(absolutePath);
   }
 
-  @Get('submissions/:id/reference-slip/file')
-  async downloadReferenceSlip(
+    @Get('submissions/:id/certification/file')
+  async downloadCertification(
     @Param('id') submissionId: string,
     @CurrentUser() user: CurrentUserPayload,
     @Res() res: Response,
     @Query('download') download?: string,
   ) {
     await this.assertOwnerOrAdmin(submissionId, user);
-    const submission = await this.checklistService.getReferenceSlipForDownload(submissionId);
-    const absolutePath = join(process.cwd(), submission.referenceSlipStoragePath!);
+    const submission = await this.checklistService.getCertificationForDownload(submissionId);
+    const absolutePath = join(process.cwd(), submission.certificationStoragePath!);
     const disposition = download ? 'attachment' : 'inline';
     res.setHeader(
       'Content-Disposition',
-      `${disposition}; filename="${encodeURIComponent(submission.referenceSlipOriginalFileName!)}"`,
+      `${disposition}; filename="${encodeURIComponent(submission.certificationOriginalFileName!)}"`,
     );
-    res.type(submission.referenceSlipMimeType!);
+    res.type(submission.certificationMimeType!);
     res.sendFile(absolutePath);
   }
 
@@ -235,12 +235,32 @@ export class ChecklistController {
     return this.checklistService.concludeUldcDeliberation(id);
   }
 
-  // --- Admin Council action (Foreign Travel only) ---
 
+    // --- Admin Council action (Foreign Travel only) ---
+
+  // Requires a certification file uploaded in the same action.
   @UseGuards(AdminCouncilGuard)
   @Post('submissions/:id/admin-council-endorse')
-  adminCouncilEndorse(@Param('id') id: string) {
-    return this.checklistService.adminCouncilEndorse(id);
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads/checklist',
+        filename: (_req, file, cb) => {
+          const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+          cb(null, `${unique}${extname(file.originalname)}`);
+        },
+      }),
+      limits: { fileSize: MAX_FILE_SIZE_BYTES },
+      fileFilter: (_req, file, cb) => {
+        if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+          return cb(new Error('Unsupported file type'), false);
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  adminCouncilEndorse(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+    return this.checklistService.adminCouncilEndorse(id, file);
   }
 
   // --- President actions (Foreign Travel only) ---

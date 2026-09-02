@@ -65,6 +65,7 @@ export interface Submission {
   uldcDeliberationAt: string | null;
   presidentReferencedAt: string | null;
   referenceSlipOriginalFileName: string | null;
+  certificationOriginalFileName: string | null;
   adminCouncilEndorsedAt: string | null;
   boardConfirmedAt: string | null;
   presidentApprovedAt: string | null;
@@ -271,13 +272,26 @@ export function useChecklist() {
     });
   }
 
-  // Foreign Travel only — Admin Council endorses (forwards to Board
-  // confirmation if IMP, or President endorsement if not).
-  async function adminCouncilEndorse(submissionId: string): Promise<Submission> {
+    // Foreign Travel only — Admin Council endorses (forwards to Board
+  // confirmation if IMP, or President endorsement if not). Requires a
+  // certification file attached in the same action.
+  async function adminCouncilEndorse(submissionId: string, file: File): Promise<Submission> {
+    const formData = new FormData();
+    formData.append('file', file);
     return $fetch(`${base}/checklist/submissions/${submissionId}/admin-council-endorse`, {
       method: 'POST',
+      body: formData,
       headers: authHeaders(),
     });
+  }
+
+  // Certification download — same pattern as getReferenceSlipDownloadUrl.
+  function getCertificationDownloadUrl(submissionId: string, opts?: { download?: boolean }): string {
+    const params = new URLSearchParams();
+    if (token.value) params.set('token', token.value);
+    if (opts?.download) params.set('download', '1');
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return `${base}/checklist/submissions/${submissionId}/certification/file${qs}`;
   }
 
   // Foreign Travel + IMP only — Board confirms (not final), forwards to the President.
@@ -347,6 +361,7 @@ export function useChecklist() {
     boardApproveSubmission,
     concludeUldcDeliberation,
     adminCouncilEndorse,
+    getCertificationDownloadUrl,
     boardConfirm,
     submitPresidentReference,
     getReferenceSlipDownloadUrl,

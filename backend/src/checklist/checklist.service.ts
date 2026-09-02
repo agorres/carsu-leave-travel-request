@@ -599,10 +599,23 @@ export class ChecklistService {
    *   - IMP     -> FOR_BOARD_CONFIRMATION
    *   - not IMP -> FOR_PRESIDENT_ENDORSEMENT
    */
-  async adminCouncilEndorse(submissionId: string): Promise<Submission> {
+    /**
+   * Foreign Travel only. Admin Council endorses the request — requires
+   * attaching a certification file in the same action. Where this
+   * forwards to depends on IMP:
+   *   - IMP     -> FOR_BOARD_CONFIRMATION
+   *   - not IMP -> FOR_PRESIDENT_ENDORSEMENT
+   */
+  async adminCouncilEndorse(
+    submissionId: string,
+    file: { originalname: string; path: string; mimetype: string },
+  ): Promise<Submission> {
     const submission = await this.getSubmission(submissionId);
     if (submission.status !== SubmissionStatus.FOR_ADMIN_COUNCIL) {
       throw new BadRequestException('Only a request forwarded to Admin Council can be endorsed');
+    }
+    if (!file) {
+      throw new BadRequestException('A certification file is required to endorse this request');
     }
 
     const nextStatus = submission.isImp
@@ -610,9 +623,31 @@ export class ChecklistService {
       : SubmissionStatus.FOR_PRESIDENT_ENDORSEMENT;
 
     const adminCouncilEndorsedAt = new Date();
-    await this.submissionRepo.update(submissionId, { status: nextStatus, adminCouncilEndorsedAt });
-    return { ...submission, status: nextStatus, adminCouncilEndorsedAt };
+    await this.submissionRepo.update(submissionId, {
+      status: nextStatus,
+      adminCouncilEndorsedAt,
+      certificationStoragePath: file.path,
+      certificationOriginalFileName: file.originalname,
+      certificationMimeType: file.mimetype,
+    });
+    return {
+      ...submission,
+      status: nextStatus,
+      adminCouncilEndorsedAt,
+      certificationStoragePath: file.path,
+      certificationOriginalFileName: file.originalname,
+      certificationMimeType: file.mimetype,
+    };
   }
+
+  async getCertificationForDownload(submissionId: string): Promise<Submission> {
+    const submission = await this.getSubmission(submissionId);
+    if (!submission.certificationStoragePath) {
+      throw new NotFoundException('No certification has been uploaded for this request');
+    }
+    return submission;
+  }
+
 
   /**
    * Foreign Travel + IMP only. Board confirms the request (not final for

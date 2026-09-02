@@ -143,6 +143,17 @@ export class Submission {
   @Column({ type: 'timestamp', nullable: true })
   adminCouncilEndorsedAt: Date | null;
 
+   // Foreign Travel only — the certification Admin Council attaches
+  // alongside their endorsement (required, uploaded in the same action).
+  @Column({ type: 'varchar', nullable: true })
+  certificationStoragePath: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  certificationOriginalFileName: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  certificationMimeType: string | null;
+
   // Foreign Travel + IMP only — set when the Board confirms (not final for this path)
   @Column({ type: 'timestamp', nullable: true })
   boardConfirmedAt: Date | null;

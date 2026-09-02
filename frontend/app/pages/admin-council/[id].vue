@@ -10,7 +10,7 @@ const route = useRoute()
 const id = route.params.id as string
 const router = useRouter()
 
-const { getProgress, getDocumentDownloadUrl, adminCouncilEndorse } = useChecklist()
+const { getProgress, getDocumentDownloadUrl, getCertificationDownloadUrl, adminCouncilEndorse } = useChecklist()
 const { user, logout } = useAuth()
 
 const progress = ref<SubmissionProgress | null>(null)
@@ -64,12 +64,22 @@ function docFor(itemCode: string) {
 
 const endorsing = ref(false)
 const endorseError = ref('')
+const certificationFile = ref<File | null>(null)
+function onCertificationFileChange(e: Event) {
+  const target = e.target as HTMLInputElement
+  certificationFile.value = target.files?.[0] ?? null
+}
 async function onEndorse() {
+  if (!certificationFile.value) {
+    endorseError.value = 'Please attach the certification file before endorsing.'
+    return
+  }
   endorsing.value = true
   endorseError.value = ''
   try {
-    const updated = await adminCouncilEndorse(id)
+    const updated = await adminCouncilEndorse(id, certificationFile.value)
     if (progress.value) progress.value.submission = { ...progress.value.submission, ...updated }
+    certificationFile.value = null
   } catch (e: any) {
     endorseError.value = e?.data?.message || 'Could not record the Admin Council endorsement.'
   } finally {
@@ -210,8 +220,9 @@ onMounted(async () => {
 
         <section class="admin-card">
           <div v-if="isForAdminCouncil" class="screening-actions">
-            <p class="muted">ULDC has forwarded this Foreign Travel request. Review the documents above, then endorse it to continue the approval flow.</p>
+            <p class="muted">ULDC has forwarded this Foreign Travel request. Review the documents above, attach the certification, then endorse it to continue the approval flow.</p>
             <div class="action-buttons">
+              <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" @change="onCertificationFileChange" />
               <button class="action-btn primary" :disabled="endorsing" @click="onEndorse">
                 {{ endorsing ? 'Endorsing…' : 'Endorse Request' }}
               </button>
@@ -220,7 +231,18 @@ onMounted(async () => {
           </div>
 
           <div v-else-if="isPastAdminCouncil" class="screening-actions">
-            <p class="muted">This request has moved past Admin Council and is now {{ statusLabel.toLowerCase() }} — no further action needed here.</p>
+            <p class="muted">
+              This request has moved past Admin Council and is now {{ statusLabel.toLowerCase() }} — no further action needed here.
+              <a
+                v-if="progress.submission.certificationOriginalFileName"
+                :href="getCertificationDownloadUrl(progress.submission.id)"
+                class="view-link"
+                target="_blank"
+                rel="noopener"
+              >
+                View Certification →
+              </a>
+            </p>
           </div>
         </section>
       </template>
