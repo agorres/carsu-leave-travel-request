@@ -168,7 +168,7 @@ onMounted(async () => {
             <span v-if="isBoardApproved" class="muted">Approved by Board {{ formatDateTime(progress.submission.boardApprovedAt) }}</span>
           </div>
           <div v-if="progress.submission.referenceSlipOriginalFileName || progress.submission.certificationOriginalFileName" class="status-row">
-            
+            <a
               v-if="progress.submission.referenceSlipOriginalFileName"
               :href="getReferenceSlipDownloadUrl(progress.submission.id)"
               class="view-link"
@@ -177,7 +177,7 @@ onMounted(async () => {
             >
               View Reference Slip →
             </a>
-            
+            <a
               v-if="progress.submission.certificationOriginalFileName"
               :href="getCertificationDownloadUrl(progress.submission.id)"
               class="view-link"
@@ -251,7 +251,7 @@ onMounted(async () => {
                   <span v-if="docFor(item.code)">{{ docFor(item.code)!.originalFileName }}</span>
                   <span v-else class="error-text">Not provided</span>
                   <div>
-                    
+                    <a
                       v-if="docFor(item.code)"
                       :href="getDocumentDownloadUrl(progress.submission.id, item.code)"
                       class="view-link"

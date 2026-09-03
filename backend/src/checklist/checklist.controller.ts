@@ -146,6 +146,25 @@ export class ChecklistController {
     res.sendFile(absolutePath);
   }
 
+  @Get('submissions/:id/reference-slip/file')
+  async downloadReferenceSlip(
+    @Param('id') submissionId: string,
+    @CurrentUser() user: CurrentUserPayload,
+    @Res() res: Response,
+    @Query('download') download?: string,
+  ) {
+    await this.assertOwnerOrAdmin(submissionId, user);
+    const submission = await this.checklistService.getReferenceSlipForDownload(submissionId);
+    const absolutePath = join(process.cwd(), submission.referenceSlipStoragePath!);
+    const disposition = download ? 'attachment' : 'inline';
+    res.setHeader(
+      'Content-Disposition',
+      `${disposition}; filename="${encodeURIComponent(submission.referenceSlipOriginalFileName!)}"`,
+    );
+    res.type(submission.referenceSlipMimeType!);
+    res.sendFile(absolutePath);
+  }
+
   @Post('submissions/:id/documents')
   @UseInterceptors(
     FileInterceptor('file', {

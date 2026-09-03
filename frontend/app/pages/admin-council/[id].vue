@@ -328,4 +328,174 @@ onMounted(async () => {
   border-radius: 8px;
   padding: 20px;
 }
-.sect
+.section-heading {
+  margin: 0 0 16px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--emerald);
+}
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.info-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.info-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--gray);
+  font-weight: 600;
+}
+.info-value {
+  font-size: 14px;
+  color: #1a1a1a;
+}
+.muted {
+  color: var(--gray);
+  font-size: 13.5px;
+}
+.error-text {
+  color: #b00020;
+  font-size: 13.5px;
+}
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+.admin-table th {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 2px solid #e5e5e5;
+  color: var(--gray);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.admin-table td {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  vertical-align: top;
+}
+.employee-name {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.view-link {
+  color: var(--primary-green);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 13px;
+}
+.view-link:hover {
+  text-decoration: underline;
+}
+.status-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.badge-for_president_reference {
+  background: #fff4d6;
+  color: #8a6300;
+}
+.badge-for_admin_council {
+  background: #f1e8fd;
+  color: #5a2ca0;
+}
+.badge-for_board_confirmation {
+  background: #eaf3ff;
+  color: #1a5fb4;
+}
+.badge-for_president_approval,
+.badge-for_president_endorsement {
+  background: #fde9d7;
+  color: #a05a1a;
+}
+.badge-for_board_approval {
+  background: #eaf3ff;
+  color: #1a5fb4;
+}
+.badge-president_approved,
+.badge-board_approved {
+  background: #dff5df;
+  color: var(--emerald);
+}
+.screening-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.action-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.action-btn {
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.action-btn.primary {
+  background: var(--primary-green);
+  color: #fff;
+}
+.action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.item-error {
+  color: #b00020;
+  font-size: 12.5px;
+}
+.review-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+.review-pending {
+  background: #eee;
+  color: var(--gray);
+}
+.review-approved {
+  background: #dff5df;
+  color: var(--emerald);
+}
+.review-rejected {
+  background: #fde3e3;
+  color: #b00020;
+}
+.review-comment {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--gray);
+  font-style: italic;
+  max-width: 220px;
+}
+</style>
