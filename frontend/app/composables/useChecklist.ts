@@ -32,9 +32,10 @@ export type SubmissionStatus =
   // Foreign Travel + IMP only
   | 'uldc_deliberation'
   | 'for_president_reference'
-  | 'for_board_confirmation'
   | 'for_president_approval'
   | 'president_approved'
+  | 'for_board_confirmation'
+  | 'board_confirmed'
   // Foreign Travel + non-IMP only
   | 'for_president_endorsement'
   | 'for_board_approval'
@@ -272,8 +273,8 @@ export function useChecklist() {
     });
   }
 
-    // Foreign Travel only — Admin Council endorses (forwards to Board
-  // confirmation if IMP, or President endorsement if not). Requires a
+    // Foreign Travel only — Admin Council endorses (forwards to President
+  // approval if IMP, or President endorsement if not). Requires a
   // certification file attached in the same action.
   async function adminCouncilEndorse(submissionId: string, file: File): Promise<Submission> {
     const formData = new FormData();
@@ -294,7 +295,7 @@ export function useChecklist() {
     return `${base}/checklist/submissions/${submissionId}/certification/file${qs}`;
   }
 
-  // Foreign Travel + IMP only — Board confirms (not final), forwards to the President.
+  // Foreign Travel + IMP only — Board's confirmation, the final step in this path.
   async function boardConfirm(submissionId: string): Promise<Submission> {
     return $fetch(`${base}/checklist/submissions/${submissionId}/board-confirm`, {
       method: 'POST',
@@ -325,7 +326,7 @@ export function useChecklist() {
     return `${base}/checklist/submissions/${submissionId}/reference-slip/file${qs}`;
   }
 
-  // Foreign Travel + IMP only — President's final approval.
+  // Foreign Travel + IMP only — President's approval (not final), forwards to the Board to confirm.
   async function presidentApprove(submissionId: string): Promise<Submission> {
     return $fetch(`${base}/checklist/submissions/${submissionId}/president-approve`, {
       method: 'POST',

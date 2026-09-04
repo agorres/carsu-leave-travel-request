@@ -87,9 +87,10 @@ const isBoardApproved = computed(() => progress.value?.submission.status === 'bo
 const isUldcDeliberation = computed(() => progress.value?.submission.status === 'uldc_deliberation')
 const isForPresidentReference = computed(() => progress.value?.submission.status === 'for_president_reference')
 const isForAdminCouncil = computed(() => progress.value?.submission.status === 'for_admin_council')
-const isForBoardConfirmation = computed(() => progress.value?.submission.status === 'for_board_confirmation')
 const isForPresidentApproval = computed(() => progress.value?.submission.status === 'for_president_approval')
 const isPresidentApproved = computed(() => progress.value?.submission.status === 'president_approved')
+const isForBoardConfirmation = computed(() => progress.value?.submission.status === 'for_board_confirmation')
+const isBoardConfirmed = computed(() => progress.value?.submission.status === 'board_confirmed')
 const isForPresidentEndorsement = computed(() => progress.value?.submission.status === 'for_president_endorsement')
 const isForBoardApproval = computed(() => progress.value?.submission.status === 'for_board_approval')
 // Once returned, everything is locked EXCEPT items HR flagged rejected.
@@ -189,7 +190,7 @@ function recalculateProgress() {
   const lockedStatuses = [
     'submitted', 'returned_for_correction',
     'for_board_deliberation', 'uldc_deliberation', 'for_president_reference', 'for_admin_council',
-    'for_board_confirmation', 'for_president_approval', 'president_approved',
+    'for_president_approval', 'president_approved', 'for_board_confirmation', 'board_confirmed',
     'for_president_endorsement', 'for_board_approval', 'board_approved',
   ]
   if (!lockedStatuses.includes(progress.value.submission.status)) {
@@ -274,8 +275,8 @@ function docFor(itemCode: string) {
 function itemEditable(itemCode: string) {
   if (isReturned.value) return canReupload(itemCode)
   if (isSubmitted.value || isForBoard.value || isBoardApproved.value) return false
-  if (isUldcDeliberation.value || isForPresidentReference.value || isForAdminCouncil.value || isForBoardConfirmation.value) return false
-  if (isForPresidentApproval.value || isPresidentApproved.value) return false
+  if (isUldcDeliberation.value || isForPresidentReference.value || isForAdminCouncil.value) return false
+  if (isForPresidentApproval.value || isPresidentApproved.value || isForBoardConfirmation.value || isBoardConfirmed.value) return false
   if (isForPresidentEndorsement.value || isForBoardApproval.value) return false
   return true
 }
@@ -483,24 +484,28 @@ const groupedItems = computed(() => {
           </table>
         </div>
 
-        <div v-if="isPresidentApproved" class="complete-banner approved-banner">
-          <p>✓ Request approved by the President{{ progress.submission.presidentApprovedAt ? ' on ' + formatDateTime(progress.submission.presidentApprovedAt) : '' }}. No further action needed.</p>
+        <div v-if="isBoardConfirmed" class="complete-banner approved-banner">
+          <p>✓ Request confirmed by the Board{{ progress.submission.boardConfirmedAt ? ' on ' + formatDateTime(progress.submission.boardConfirmedAt) : '' }}. No further action needed.</p>
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="isBoardApproved" class="complete-banner approved-banner">
           <p>✓ Request approved by the Board{{ progress.submission.boardApprovedAt ? ' on ' + formatDateTime(progress.submission.boardApprovedAt) : '' }}. No further action needed.</p>
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
+        <div v-else-if="isForBoardConfirmation" class="complete-banner approved-banner">
+          <p>✓ Approved by the President{{ progress.submission.presidentApprovedAt ? ' on ' + formatDateTime(progress.submission.presidentApprovedAt) : '' }} and forwarded to the Board for confirmation.</p>
+          <button class="begin-btn" @click="startNewRequest">Back</button>
+        </div>
+        <div v-else-if="isPresidentApproved" class="complete-banner approved-banner">
+          <p>✓ Request approved by the President{{ progress.submission.presidentApprovedAt ? ' on ' + formatDateTime(progress.submission.presidentApprovedAt) : '' }} and forwarded to the Board for confirmation.</p>
+          <button class="begin-btn" @click="startNewRequest">Back</button>
+        </div>
         <div v-else-if="isForPresidentApproval" class="complete-banner approved-banner">
-          <p>✓ Confirmed by the Board{{ progress.submission.boardConfirmedAt ? ' on ' + formatDateTime(progress.submission.boardConfirmedAt) : '' }} and forwarded to the President for final approval.</p>
+          <p>✓ Endorsed by the Admin Council{{ progress.submission.adminCouncilEndorsedAt ? ' on ' + formatDateTime(progress.submission.adminCouncilEndorsedAt) : '' }} and forwarded to the President for approval.</p>
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="isForBoardApproval" class="complete-banner approved-banner">
           <p>✓ Endorsed by the President{{ progress.submission.presidentEndorsedAt ? ' on ' + formatDateTime(progress.submission.presidentEndorsedAt) : '' }} and forwarded to the Board for final approval.</p>
-          <button class="begin-btn" @click="startNewRequest">Back</button>
-        </div>
-        <div v-else-if="isForBoardConfirmation" class="complete-banner approved-banner">
-          <p>✓ Endorsed by the Admin Council{{ progress.submission.adminCouncilEndorsedAt ? ' on ' + formatDateTime(progress.submission.adminCouncilEndorsedAt) : '' }} and forwarded to the Board for confirmation.</p>
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="isForPresidentEndorsement" class="complete-banner approved-banner">

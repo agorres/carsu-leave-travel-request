@@ -37,6 +37,7 @@ const STATUS_LABELS: Record<string, string> = {
   for_admin_council: 'For Admin Council',
   for_board_confirmation: 'For Board Confirmation',
   for_president_approval: 'For President Approval',
+  board_confirmed: 'Confirmed by Board',
   president_approved: 'Approved by President',
   for_president_endorsement: 'For President Endorsement',
   for_board_approval: 'For Board Approval',
@@ -65,7 +66,7 @@ const isBoardApproved = computed(() => progress.value?.submission.status === 'bo
 const isPastUldc = computed(() => {
   const s = progress.value?.submission.status
   return s === 'uldc_deliberation' || s === 'for_president_reference' || s === 'for_admin_council' || s === 'for_board_confirmation' || s === 'for_president_approval' ||
-    s === 'president_approved' || s === 'for_president_endorsement' || s === 'for_board_approval' || s === 'board_approved'
+    s === 'board_confirmed' || s === 'president_approved' || s === 'for_president_endorsement' || s === 'for_board_approval' || s === 'board_approved'
 })
 
 function formatDate(value: string | null) {
@@ -560,6 +561,7 @@ onMounted(async () => {
   background: #eaf3ff;
   color: #1a5fb4;
 }
+.badge-board_confirmed,
 .badge-president_approved,
 .badge-board_approved {
   background: #dff5df;

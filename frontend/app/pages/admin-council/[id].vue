@@ -28,8 +28,9 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   for_admin_council: 'For Endorsement',
-  for_board_confirmation: 'Endorsed — With Board',
-  for_president_approval: 'With President',
+  for_president_approval: 'Endorsed — With President',
+  for_board_confirmation: 'Approved — With Board',
+  board_confirmed: 'Confirmed by Board',
   president_approved: 'Approved by President',
   for_president_endorsement: 'Endorsed — With President',
   for_board_approval: 'With Board',
@@ -45,7 +46,7 @@ const statusLabel = computed(() => STATUS_LABELS[progress.value?.submission.stat
 const isForAdminCouncil = computed(() => progress.value?.submission.status === 'for_admin_council')
 const isPastAdminCouncil = computed(() => {
   const s = progress.value?.submission.status
-  return s === 'for_board_confirmation' || s === 'for_president_approval' || s === 'president_approved' ||
+  return s === 'for_board_confirmation' || s === 'for_president_approval' || s === 'board_confirmed' || s === 'president_approved' ||
     s === 'for_president_endorsement' || s === 'for_board_approval' || s === 'board_approved'
 })
 
@@ -437,6 +438,7 @@ onMounted(async () => {
   color: #1a5fb4;
 }
 .badge-president_approved,
+.badge-board_confirmed,
 .badge-board_approved {
   background: #dff5df;
   color: var(--emerald);

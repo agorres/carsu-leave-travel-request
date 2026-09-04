@@ -24,9 +24,10 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   for_board_deliberation: 'For Deliberation',
-  for_board_confirmation: 'For Confirmation',
-  for_president_approval: 'Confirmed — With President',
+  for_president_approval: 'With President',
   president_approved: 'Approved by President',
+  for_board_confirmation: 'For Confirmation',
+  board_confirmed: 'Confirmed',
   for_board_approval: 'For Final Approval',
   board_approved: 'Approved',
 }
@@ -243,6 +244,7 @@ onMounted(async () => {
   color: #1a5fb4;
 }
 .pill-president_approved,
+.pill-board_confirmed,
 .pill-board_approved {
   background: #dff5df;
   color: var(--emerald);

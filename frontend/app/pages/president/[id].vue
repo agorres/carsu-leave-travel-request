@@ -29,8 +29,9 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
 const STATUS_LABELS: Record<string, string> = {
   for_president_reference: 'For Reference Slip',
   for_admin_council: 'Referred — With Admin Council',
-  for_board_confirmation: 'Referred — With Board',
-  for_president_approval: 'For Final Approval',
+  for_president_approval: 'For Approval',
+  for_board_confirmation: 'Approved — With Board',
+  board_confirmed: 'Confirmed by Board',
   president_approved: 'Approved by President',
   for_president_endorsement: 'For Endorsement',
   for_board_approval: 'Endorsed — With Board',
@@ -44,11 +45,12 @@ const typeLabel = computed(() => {
 
 const statusLabel = computed(() => STATUS_LABELS[progress.value?.submission.status ?? ''] ?? '')
 // IMP path: ULDC Committee concludes deliberation -> President refers
-// (uploads a signed reference slip) -> Admin Council -> Board -> President approves.
+// (uploads a signed reference slip) -> Admin Council -> President approves -> Board confirms (final).
 const isForPresidentReference = computed(() => progress.value?.submission.status === 'for_president_reference')
 const isForAdminCouncil = computed(() => progress.value?.submission.status === 'for_admin_council')
-const isForBoardConfirmation = computed(() => progress.value?.submission.status === 'for_board_confirmation')
 const isForPresidentApproval = computed(() => progress.value?.submission.status === 'for_president_approval')
+const isForBoardConfirmation = computed(() => progress.value?.submission.status === 'for_board_confirmation')
+const isBoardConfirmed = computed(() => progress.value?.submission.status === 'board_confirmed')
 const isPresidentApproved = computed(() => progress.value?.submission.status === 'president_approved')
 // non-IMP path: President endorses, forwards to Board for final approval.
 const isForPresidentEndorsement = computed(() => progress.value?.submission.status === 'for_president_endorsement')
@@ -162,7 +164,9 @@ onMounted(async () => {
             <span v-if="progress.submission.uldcDeliberationAt" class="muted">ULDC Deliberation concluded {{ formatDateTime(progress.submission.uldcDeliberationAt) }}</span>
             <span v-if="progress.submission.presidentReferencedAt" class="muted">Referred by President {{ formatDateTime(progress.submission.presidentReferencedAt) }}</span>
             <span class="muted">Endorsed by Admin Council {{ formatDateTime(progress.submission.adminCouncilEndorsedAt) }}</span>
-            <span v-if="isForPresidentApproval || isPresidentApproved" class="muted">Confirmed by Board {{ formatDateTime(progress.submission.boardConfirmedAt) }}</span>
+            <span v-if="isForBoardConfirmation || isBoardConfirmed" class="muted">Approved by President {{ formatDateTime(progress.submission.presidentApprovedAt) }}</span>
+            <span v-if="isBoardConfirmed" class="muted">Confirmed by Board {{ formatDateTime(progress.submission.boardConfirmedAt) }}</span>
+            <span v-if="isPresidentApproved" class="muted">Confirmed by Board {{ formatDateTime(progress.submission.boardConfirmedAt) }}</span>
             <span v-if="isPresidentApproved" class="muted">Approved by President {{ formatDateTime(progress.submission.presidentApprovedAt) }}</span>
             <span v-if="isForBoardApproval || isBoardApproved" class="muted">Endorsed by President {{ formatDateTime(progress.submission.presidentEndorsedAt) }}</span>
             <span v-if="isBoardApproved" class="muted">Approved by Board {{ formatDateTime(progress.submission.boardApprovedAt) }}</span>
@@ -292,20 +296,24 @@ onMounted(async () => {
             <p v-if="referenceError" class="item-error">{{ referenceError }}</p>
           </div>
 
-          <div v-else-if="isForAdminCouncil || isForBoardConfirmation" class="screening-actions">
+          <div v-else-if="isForAdminCouncil" class="screening-actions">
             <p class="muted">
               ✓ You referred this request on {{ formatDateTime(progress.submission.presidentReferencedAt) }}. It is now {{ statusLabel.toLowerCase() }} — no further action needed here yet.
             </p>
           </div>
 
           <div v-else-if="isForPresidentApproval" class="screening-actions">
-            <p class="muted">The Board has confirmed this Foreign Travel (IMP) request. Review the documents above, then record final approval.</p>
+            <p class="muted">The Admin Council has endorsed this Foreign Travel (IMP) request. Review the documents above, then record your approval.</p>
             <div class="action-buttons">
               <button class="action-btn primary" :disabled="approving" @click="onApprove">
-                {{ approving ? 'Approving…' : 'Give Final Approval' }}
+                {{ approving ? 'Approving…' : 'Give Approval — Forward to Board' }}
               </button>
             </div>
             <p v-if="approveError" class="item-error">{{ approveError }}</p>
+          </div>
+
+          <div v-else-if="isForBoardConfirmation || isBoardConfirmed" class="screening-actions">
+            <p class="muted">This request has moved past the President and is now {{ isBoardConfirmed ? 'confirmed by the Board' : 'with the Board for final confirmation' }} — no further action needed here.</p>
           </div>
 
           <div v-else-if="isForPresidentEndorsement" class="screening-actions">
@@ -319,7 +327,7 @@ onMounted(async () => {
           </div>
 
           <div v-else-if="isPresidentApproved" class="screening-actions">
-            <p class="muted">✓ You have given final approval on this request. No further action needed.</p>
+            <p class="muted">✓ You have given approval on this request. No further action needed.</p>
           </div>
 
           <div v-else-if="isForBoardApproval || isBoardApproved" class="screening-actions">
@@ -508,6 +516,7 @@ onMounted(async () => {
   background: #eaf3ff;
   color: #1a5fb4;
 }
+.badge-board_confirmed,
 .badge-president_approved,
 .badge-board_approved {
   background: #dff5df;

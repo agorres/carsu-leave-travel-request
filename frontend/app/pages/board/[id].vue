@@ -28,8 +28,9 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   for_board_deliberation: 'For Board Deliberation',
+  for_president_approval: 'With President — For Approval',
   for_board_confirmation: 'For Board Confirmation',
-  for_president_approval: 'Confirmed — With President',
+  board_confirmed: 'Confirmed by Board',
   president_approved: 'Approved by President',
   for_board_approval: 'For Board Approval',
   board_approved: 'Approved by Board',
@@ -43,6 +44,7 @@ const typeLabel = computed(() => {
 const statusLabel = computed(() => STATUS_LABELS[progress.value?.submission.status ?? ''] ?? '')
 const isForBoard = computed(() => progress.value?.submission.status === 'for_board_deliberation')
 const isForBoardConfirmation = computed(() => progress.value?.submission.status === 'for_board_confirmation')
+const isBoardConfirmed = computed(() => progress.value?.submission.status === 'board_confirmed')
 const isForBoardApproval = computed(() => progress.value?.submission.status === 'for_board_approval')
 const isForPresidentApproval = computed(() => progress.value?.submission.status === 'for_president_approval')
 const isPresidentApproved = computed(() => progress.value?.submission.status === 'president_approved')
@@ -129,7 +131,9 @@ onMounted(async () => {
             <span class="muted">Approved by ULDC {{ formatDateTime(progress.submission.uldcApprovedAt) }}</span>
             <span v-if="progress.submission.adminCouncilEndorsedAt" class="muted">Endorsed by Admin Council {{ formatDateTime(progress.submission.adminCouncilEndorsedAt) }}</span>
             <span v-if="progress.submission.presidentEndorsedAt" class="muted">Endorsed by President {{ formatDateTime(progress.submission.presidentEndorsedAt) }}</span>
-            <span v-if="isForPresidentApproval || isPresidentApproved" class="muted">Confirmed by Board {{ formatDateTime(progress.submission.boardConfirmedAt) }}</span>
+            <span v-if="isForBoardConfirmation || isBoardConfirmed" class="muted">Approved by President {{ formatDateTime(progress.submission.presidentApprovedAt) }}</span>
+            <span v-if="isBoardConfirmed" class="muted">Confirmed by Board {{ formatDateTime(progress.submission.boardConfirmedAt) }}</span>
+            <span v-if="isPresidentApproved" class="muted">Confirmed by Board {{ formatDateTime(progress.submission.boardConfirmedAt) }}</span>
             <span v-if="isPresidentApproved" class="muted">Approved by President {{ formatDateTime(progress.submission.presidentApprovedAt) }}</span>
             <span v-if="isBoardApproved" class="muted">Approved by Board {{ formatDateTime(progress.submission.boardApprovedAt) }}</span>
           </div>
@@ -258,17 +262,25 @@ onMounted(async () => {
           </div>
 
           <div v-else-if="isForBoardConfirmation" class="screening-actions">
-            <p class="muted">The Admin Council has endorsed this Foreign Travel (IMP) request. Review the documents above, then confirm to forward it to the President for final approval.</p>
+            <p class="muted">The President has approved this Foreign Travel (IMP) request. Review the documents above, then record the Board's final confirmation.</p>
             <div class="action-buttons">
               <button class="action-btn primary" :disabled="confirming" @click="onBoardConfirm">
-                {{ confirming ? 'Confirming…' : 'Confirm — Forward to President' }}
+                {{ confirming ? 'Confirming…' : 'Confirm — Final Confirmation' }}
               </button>
             </div>
             <p v-if="confirmError" class="item-error">{{ confirmError }}</p>
           </div>
 
-          <div v-else-if="isForPresidentApproval || isPresidentApproved" class="screening-actions">
-            <p class="muted">This request has moved past the Board and is now {{ isPresidentApproved ? 'approved by the President' : 'with the President for final approval' }} — no further action needed from the Board.</p>
+          <div v-else-if="isForPresidentApproval" class="screening-actions">
+            <p class="muted">This request is with the President for approval — no further action needed from the Board yet.</p>
+          </div>
+
+          <div v-else-if="isBoardConfirmed" class="screening-actions">
+            <p class="muted">✓ This request has been confirmed by the Board. No further action needed.</p>
+          </div>
+
+          <div v-else-if="isPresidentApproved" class="screening-actions">
+            <p class="muted">This request has moved past the Board and is now approved by the President — no further action needed from the Board.</p>
           </div>
 
           <div v-else-if="isBoardApproved" class="screening-actions">
@@ -452,6 +464,7 @@ onMounted(async () => {
   background: #eaf3ff;
   color: #1a5fb4;
 }
+.badge-board_confirmed,
 .badge-president_approved,
 .badge-board_approved {
   background: #dff5df;

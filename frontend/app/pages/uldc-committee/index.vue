@@ -26,9 +26,10 @@ const STATUS_LABELS: Record<string, string> = {
   uldc_deliberation: 'Under Deliberation',
   for_president_reference: 'For President\'s Reference',
   for_admin_council: 'For Admin Council',
-  for_board_confirmation: 'For Board Confirmation',
   for_president_approval: 'For President Approval',
   president_approved: 'Approved by President',
+  for_board_confirmation: 'For Board Confirmation',
+  board_confirmed: 'Confirmed by Board',
 }
 
 function typeLabel(type: string) {
@@ -246,7 +247,8 @@ onMounted(async () => {
   background: #fde9d7;
   color: #a05a1a;
 }
-.pill-president_approved {
+.pill-president_approved,
+.pill-board_confirmed {
   background: #dff5df;
   color: var(--emerald);
 }

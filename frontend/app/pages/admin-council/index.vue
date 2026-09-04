@@ -24,9 +24,10 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   for_admin_council: 'For Endorsement',
-  for_board_confirmation: 'Endorsed — With Board',
-  for_president_approval: 'With President',
+  for_president_approval: 'Endorsed — With President',
   president_approved: 'Approved by President',
+  for_board_confirmation: 'Approved — With Board',
+  board_confirmed: 'Confirmed by Board',
   for_president_endorsement: 'Endorsed — With President',
   for_board_approval: 'With Board',
   board_approved: 'Approved by Board',
@@ -242,6 +243,7 @@ onMounted(async () => {
   color: #a05a1a;
 }
 .pill-president_approved,
+.pill-board_confirmed,
 .pill-board_approved {
   background: #dff5df;
   color: var(--emerald);

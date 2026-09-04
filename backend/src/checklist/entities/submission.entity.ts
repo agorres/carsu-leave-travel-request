@@ -21,9 +21,10 @@ export enum SubmissionStatus {
   // --- Foreign Travel + IMP flow only ---
   ULDC_DELIBERATION = 'uldc_deliberation', // ULDC screening passed — now under full ULDC body deliberation
   FOR_PRESIDENT_REFERENCE = 'for_president_reference', // ULDC Committee concluded deliberation — awaiting the President's reference slip before Admin Council
-  FOR_BOARD_CONFIRMATION = 'for_board_confirmation', // Admin Council endorsed — forwarded to the Board to confirm
-  FOR_PRESIDENT_APPROVAL = 'for_president_approval', // Board confirmed — forwarded to the President
-  PRESIDENT_APPROVED = 'president_approved', // President approved — final state (IMP path)
+  FOR_PRESIDENT_APPROVAL = 'for_president_approval', // Admin Council endorsed — forwarded to the President for approval
+  PRESIDENT_APPROVED = 'president_approved', // President approved — forwarded to the Board to confirm (not final anymore)
+  FOR_BOARD_CONFIRMATION = 'for_board_confirmation', // President approved — forwarded to the Board to confirm
+  BOARD_CONFIRMED = 'board_confirmed', // Board confirmed — final state (Foreign Travel + IMP path)
 
   // --- Foreign Travel + non-IMP flow only ---
   FOR_PRESIDENT_ENDORSEMENT = 'for_president_endorsement', // Admin Council endorsed — forwarded to the President
@@ -42,9 +43,10 @@ export const LOCKED_SUBMISSION_STATUSES: SubmissionStatus[] = [
   SubmissionStatus.ULDC_DELIBERATION,
   SubmissionStatus.FOR_PRESIDENT_REFERENCE,
   SubmissionStatus.FOR_ADMIN_COUNCIL,
-  SubmissionStatus.FOR_BOARD_CONFIRMATION,
   SubmissionStatus.FOR_PRESIDENT_APPROVAL,
   SubmissionStatus.PRESIDENT_APPROVED,
+  SubmissionStatus.FOR_BOARD_CONFIRMATION,
+  SubmissionStatus.BOARD_CONFIRMED,
   SubmissionStatus.FOR_PRESIDENT_ENDORSEMENT,
   SubmissionStatus.FOR_BOARD_APPROVAL,
   SubmissionStatus.BOARD_APPROVED,
@@ -154,11 +156,11 @@ export class Submission {
   @Column({ type: 'varchar', nullable: true })
   certificationMimeType: string | null;
 
-  // Foreign Travel + IMP only — set when the Board confirms (not final for this path)
+  // Foreign Travel + IMP only — set when the Board confirms (final for this path)
   @Column({ type: 'timestamp', nullable: true })
   boardConfirmedAt: Date | null;
 
-  // Foreign Travel + IMP only — set when the President gives final approval
+  // Foreign Travel + IMP only — set when the President approves (not final for this path)
   @Column({ type: 'timestamp', nullable: true })
   presidentApprovedAt: Date | null;
 

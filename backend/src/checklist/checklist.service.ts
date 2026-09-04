@@ -128,9 +128,10 @@ export class ChecklistService {
           SubmissionStatus.ULDC_DELIBERATION,
           SubmissionStatus.FOR_PRESIDENT_REFERENCE,
           SubmissionStatus.FOR_ADMIN_COUNCIL,
-          SubmissionStatus.FOR_BOARD_CONFIRMATION,
           SubmissionStatus.FOR_PRESIDENT_APPROVAL,
           SubmissionStatus.PRESIDENT_APPROVED,
+          SubmissionStatus.FOR_BOARD_CONFIRMATION,
+          SubmissionStatus.BOARD_CONFIRMED,
           SubmissionStatus.FOR_PRESIDENT_ENDORSEMENT,
           SubmissionStatus.FOR_BOARD_APPROVAL,
           SubmissionStatus.BOARD_APPROVED,
@@ -153,9 +154,10 @@ export class ChecklistService {
           SubmissionStatus.ULDC_DELIBERATION,
           SubmissionStatus.FOR_PRESIDENT_REFERENCE,
           SubmissionStatus.FOR_ADMIN_COUNCIL,
-          SubmissionStatus.FOR_BOARD_CONFIRMATION,
           SubmissionStatus.FOR_PRESIDENT_APPROVAL,
           SubmissionStatus.PRESIDENT_APPROVED,
+          SubmissionStatus.FOR_BOARD_CONFIRMATION,
+          SubmissionStatus.BOARD_CONFIRMED,
         ]),
       },
       relations: { documents: true },
@@ -174,10 +176,11 @@ export class ChecklistService {
       where: {
         status: In([
           SubmissionStatus.FOR_BOARD_DELIBERATION,
-          SubmissionStatus.FOR_BOARD_CONFIRMATION,
-          SubmissionStatus.FOR_BOARD_APPROVAL,
           SubmissionStatus.FOR_PRESIDENT_APPROVAL,
           SubmissionStatus.PRESIDENT_APPROVED,
+          SubmissionStatus.FOR_BOARD_CONFIRMATION,
+          SubmissionStatus.BOARD_CONFIRMED,
+          SubmissionStatus.FOR_BOARD_APPROVAL,
           SubmissionStatus.BOARD_APPROVED,
         ]),
       },
@@ -195,9 +198,10 @@ export class ChecklistService {
       where: {
         status: In([
           SubmissionStatus.FOR_ADMIN_COUNCIL,
-          SubmissionStatus.FOR_BOARD_CONFIRMATION,
           SubmissionStatus.FOR_PRESIDENT_APPROVAL,
           SubmissionStatus.PRESIDENT_APPROVED,
+          SubmissionStatus.FOR_BOARD_CONFIRMATION,
+          SubmissionStatus.BOARD_CONFIRMED,
           SubmissionStatus.FOR_PRESIDENT_ENDORSEMENT,
           SubmissionStatus.FOR_BOARD_APPROVAL,
           SubmissionStatus.BOARD_APPROVED,
@@ -211,7 +215,7 @@ export class ChecklistService {
   /**
    * President view (Foreign Travel only): requests awaiting the
    * President's reference slip (IMP, right after ULDC Committee
-   * deliberation), endorsement (non-IMP), or final approval (IMP), plus
+   * deliberation), endorsement (non-IMP), or approval (IMP), plus
    * anything further downstream for tracking.
    */
   async listPresidentSubmissions(): Promise<Submission[]> {
@@ -220,9 +224,10 @@ export class ChecklistService {
         status: In([
           SubmissionStatus.FOR_PRESIDENT_REFERENCE,
           SubmissionStatus.FOR_ADMIN_COUNCIL,
-          SubmissionStatus.FOR_BOARD_CONFIRMATION,
           SubmissionStatus.FOR_PRESIDENT_APPROVAL,
           SubmissionStatus.PRESIDENT_APPROVED,
+          SubmissionStatus.FOR_BOARD_CONFIRMATION,
+          SubmissionStatus.BOARD_CONFIRMED,
           SubmissionStatus.FOR_PRESIDENT_ENDORSEMENT,
           SubmissionStatus.FOR_BOARD_APPROVAL,
           SubmissionStatus.BOARD_APPROVED,
@@ -402,8 +407,7 @@ export class ChecklistService {
     await this.submissionRepo.update(id, { status: nextStatus, submittedAt });
     return { ...submission, status: nextStatus, submittedAt };
   }
-
-  /**
+    /**
    * Admin marks a single uploaded document as approved or rejected.
    *
    * Shared by two review stages, gated by the caller's role so neither
@@ -594,16 +598,10 @@ export class ChecklistService {
   }
 
   /**
-   * Foreign Travel only. Admin Council endorses the request. Where this
-   * forwards to depends on IMP:
-   *   - IMP     -> FOR_BOARD_CONFIRMATION
-   *   - not IMP -> FOR_PRESIDENT_ENDORSEMENT
-   */
-    /**
    * Foreign Travel only. Admin Council endorses the request — requires
    * attaching a certification file in the same action. Where this
    * forwards to depends on IMP:
-   *   - IMP     -> FOR_BOARD_CONFIRMATION
+   *   - IMP     -> FOR_PRESIDENT_APPROVAL
    *   - not IMP -> FOR_PRESIDENT_ENDORSEMENT
    */
   async adminCouncilEndorse(
@@ -619,7 +617,7 @@ export class ChecklistService {
     }
 
     const nextStatus = submission.isImp
-      ? SubmissionStatus.FOR_BOARD_CONFIRMATION
+      ? SubmissionStatus.FOR_PRESIDENT_APPROVAL
       : SubmissionStatus.FOR_PRESIDENT_ENDORSEMENT;
 
     const adminCouncilEndorsedAt = new Date();
@@ -650,8 +648,26 @@ export class ChecklistService {
 
 
   /**
-   * Foreign Travel + IMP only. Board confirms the request (not final for
-   * this path) and forwards to the President for final approval.
+   * Foreign Travel + IMP only. President's approval (not final for this
+   * path) and forwards to the Board to confirm.
+   */
+  async presidentApprove(submissionId: string): Promise<Submission> {
+    const submission = await this.getSubmission(submissionId);
+    if (submission.status !== SubmissionStatus.FOR_PRESIDENT_APPROVAL) {
+      throw new BadRequestException('Only a request forwarded to the President can be approved');
+    }
+
+    const presidentApprovedAt = new Date();
+    await this.submissionRepo.update(submissionId, {
+      status: SubmissionStatus.FOR_BOARD_CONFIRMATION,
+      presidentApprovedAt,
+    });
+    return { ...submission, status: SubmissionStatus.FOR_BOARD_CONFIRMATION, presidentApprovedAt };
+  }
+
+  /**
+   * Foreign Travel + IMP only. Board's confirmation — last stage in this
+   * path.
    */
   async boardConfirm(submissionId: string): Promise<Submission> {
     const submission = await this.getSubmission(submissionId);
@@ -661,28 +677,10 @@ export class ChecklistService {
 
     const boardConfirmedAt = new Date();
     await this.submissionRepo.update(submissionId, {
-      status: SubmissionStatus.FOR_PRESIDENT_APPROVAL,
+      status: SubmissionStatus.BOARD_CONFIRMED,
       boardConfirmedAt,
     });
-    return { ...submission, status: SubmissionStatus.FOR_PRESIDENT_APPROVAL, boardConfirmedAt };
-  }
-
-  /**
-   * Foreign Travel + IMP only. President's final approval — last stage
-   * in this path.
-   */
-  async presidentApprove(submissionId: string): Promise<Submission> {
-    const submission = await this.getSubmission(submissionId);
-    if (submission.status !== SubmissionStatus.FOR_PRESIDENT_APPROVAL) {
-      throw new BadRequestException('Only a request forwarded to the President can be given final approval');
-    }
-
-    const presidentApprovedAt = new Date();
-    await this.submissionRepo.update(submissionId, {
-      status: SubmissionStatus.PRESIDENT_APPROVED,
-      presidentApprovedAt,
-    });
-    return { ...submission, status: SubmissionStatus.PRESIDENT_APPROVED, presidentApprovedAt };
+    return { ...submission, status: SubmissionStatus.BOARD_CONFIRMED, boardConfirmedAt };
   }
 
   /**

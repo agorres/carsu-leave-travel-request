@@ -31,9 +31,10 @@ const STATUS_LABELS: Record<string, string> = {
   uldc_deliberation: 'Under ULDC Deliberation',
   for_president_reference: 'For President\'s Reference',
   for_admin_council: 'For Admin Council',
-  for_board_confirmation: 'For Board Confirmation',
   for_president_approval: 'For President Approval',
   president_approved: 'Approved by President',
+  for_board_confirmation: 'For Board Confirmation',
+  board_confirmed: 'Confirmed by Board',
   for_president_endorsement: 'For President Endorsement',
   for_board_approval: 'For Board Approval',
   board_approved: 'Approved by Board',
@@ -61,11 +62,12 @@ const sortedSubmissions = computed(() => {
     for_president_reference: 2,
     for_admin_council: 2,
     for_board_deliberation: 2,
-    for_board_confirmation: 2,
     for_president_approval: 2,
     for_president_endorsement: 2,
     for_board_approval: 2,
-    president_approved: 3,
+    for_board_confirmation: 2,
+    president_approved: 2,
+    board_confirmed: 3,
     board_approved: 3,
   }
   return [...submissions.value].sort((a, b) => {
@@ -392,7 +394,8 @@ onMounted(loadRequests)
   background: #eaf3ff;
   color: #1a5fb4;
 }
-.pill-president_approved {
+.pill-president_approved,
+.pill-board_confirmed {
   background: #dff5df;
   color: var(--emerald);
 }
