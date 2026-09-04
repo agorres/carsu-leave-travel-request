@@ -526,15 +526,24 @@ onMounted(async () => {
   color: #1a1a1a;
 }
 .view-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   color: var(--primary-green);
-  font-weight: 600;
+  font-weight: 700;
   text-decoration: none;
   font-size: 13px;
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1.5px solid var(--primary-green);
+  background: #fff;
+  cursor: pointer;
   margin-right: 12px;
-  display: inline-block;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 .view-link:hover {
-  text-decoration: underline;
+  background: var(--primary-green);
+  color: #fff;
 }
 
 .status-card {
