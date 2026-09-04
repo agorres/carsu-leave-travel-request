@@ -4,6 +4,7 @@ import {
   Delete,
   ForbiddenException,
   Get,
+  NotFoundException,
   Param,
   Post,
   Query,
@@ -118,13 +119,26 @@ export class ChecklistController {
   ) {
     await this.assertOwnerOrAdmin(submissionId, user);
     const doc = await this.checklistService.getDocumentForDownload(submissionId, itemCode);
+    if (doc.isNotApplicable || !doc.storagePath) {
+      throw new NotFoundException('This item was marked Not Applicable — no file was uploaded');
+    }
     const absolutePath = join(process.cwd(), doc.storagePath);
     // "inline" lets the browser preview the file in a new tab (View File);
     // "attachment" forces an actual download instead (Download button).
     const disposition = download ? 'attachment' : 'inline';
-    res.setHeader('Content-Disposition', `${disposition}; filename="${encodeURIComponent(doc.originalFileName)}"`);
-    res.type(doc.mimeType);
+    res.setHeader('Content-Disposition', `${disposition}; filename="${encodeURIComponent(doc.originalFileName!)}"`);
+    res.type(doc.mimeType!);
     res.sendFile(absolutePath);
+  }
+
+  @Post('submissions/:id/documents/:itemCode/na')
+  async markDocumentNotApplicable(
+    @Param('id') submissionId: string,
+    @Param('itemCode') itemCode: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    await this.assertOwnerOrAdmin(submissionId, user);
+    return this.checklistService.markItemNotApplicable(submissionId, itemCode);
   }
 
     @Get('submissions/:id/certification/file')

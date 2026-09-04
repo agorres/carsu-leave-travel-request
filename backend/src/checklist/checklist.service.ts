@@ -283,7 +283,8 @@ export class ChecklistService {
       throw new BadRequestException(`"${itemCode}" is not a required item for this request type`);
     }
 
-    // Replace any existing upload for this item (re-upload overwrites)
+    // Replace any existing upload for this item (re-upload overwrites, and
+    // this also clears a prior "Not Applicable" marking for the same item)
     const existing = await this.documentRepo.findOne({ where: { submissionId, itemCode } });
 
     // Once sent back for correction, the employee may only touch items HR
@@ -307,6 +308,7 @@ export class ChecklistService {
     const doc = this.documentRepo.create({
       submissionId,
       itemCode,
+      isNotApplicable: false,
       originalFileName: file.originalname,
       storagePath: file.path,
       mimeType: file.mimetype,
@@ -324,6 +326,67 @@ export class ChecklistService {
     // `documents` relation array doesn't include it yet.
     // Only applies pre-submission — RETURNED_FOR_CORRECTION has its own
     // "Resubmit" action instead of auto-flipping status.
+    if (submission.status === SubmissionStatus.IN_PROGRESS) {
+      const progress = await this.getProgress(submissionId);
+      if (progress.missingItems.length === 0) {
+        await this.submissionRepo.update(submissionId, { status: SubmissionStatus.COMPLETE });
+      }
+    }
+
+    return saved;
+  }
+
+  /**
+   * Employee marks a requirement as Not Applicable instead of uploading a
+   * file. Creates a document row with no file attached — counts toward
+   * "required items satisfied" the same way an upload does, but shows up
+   * to reviewers as N/A (they acknowledge it rather than approve/reject).
+   * Same locking/gating rules as attachDocument.
+   */
+  async markItemNotApplicable(submissionId: string, itemCode: string): Promise<SubmissionDocument> {
+    const submission = await this.getSubmission(submissionId);
+
+    if (submission.status === SubmissionStatus.SUBMITTED) {
+      throw new BadRequestException('This request is under ULDC Sub-Committee screening and cannot be edited right now');
+    }
+    if (LOCKED_SUBMISSION_STATUSES.includes(submission.status)) {
+      throw new BadRequestException('This request has already moved past ULDC screening and can no longer be edited');
+    }
+
+    const requiredItems = this.getRequiredItems(submission.requestType, submission.isAbroad);
+    const isValidItem = requiredItems.some((i) => i.code === itemCode);
+    if (!isValidItem) {
+      throw new BadRequestException(`"${itemCode}" is not a required item for this request type`);
+    }
+
+    const existing = await this.documentRepo.findOne({ where: { submissionId, itemCode } });
+
+    if (submission.status === SubmissionStatus.RETURNED_FOR_CORRECTION) {
+      if (existing && existing.reviewStatus !== DocumentReviewStatus.REJECTED) {
+        throw new BadRequestException(
+          'Only documents HR flagged for correction can be marked Not Applicable',
+        );
+      }
+    }
+
+    if (existing) {
+      await this.documentRepo.remove(existing);
+    }
+
+    const doc = this.documentRepo.create({
+      submissionId,
+      itemCode,
+      isNotApplicable: true,
+      originalFileName: null,
+      storagePath: null,
+      mimeType: null,
+      fileSizeBytes: null,
+      reviewStatus: DocumentReviewStatus.PENDING,
+      reviewComment: null,
+      reviewedAt: null,
+    });
+    const saved = await this.documentRepo.save(doc);
+
     if (submission.status === SubmissionStatus.IN_PROGRESS) {
       const progress = await this.getProgress(submissionId);
       if (progress.missingItems.length === 0) {
@@ -407,7 +470,8 @@ export class ChecklistService {
     await this.submissionRepo.update(id, { status: nextStatus, submittedAt });
     return { ...submission, status: nextStatus, submittedAt };
   }
-    /**
+
+  /**
    * Admin marks a single uploaded document as approved or rejected.
    *
    * Shared by two review stages, gated by the caller's role so neither
@@ -443,6 +507,13 @@ export class ChecklistService {
 
     const doc = await this.documentRepo.findOne({ where: { submissionId, itemCode } });
     if (!doc) throw new NotFoundException('Document not found for this item');
+
+    if (doc.isNotApplicable && dto.status !== DocumentReviewStatus.ACKNOWLEDGED) {
+      throw new BadRequestException('An item marked Not Applicable can only be acknowledged');
+    }
+    if (!doc.isNotApplicable && dto.status === DocumentReviewStatus.ACKNOWLEDGED) {
+      throw new BadRequestException('Only an item marked Not Applicable can be acknowledged');
+    }
 
     doc.reviewStatus = dto.status;
     doc.reviewComment = dto.status === DocumentReviewStatus.REJECTED ? dto.comment!.trim() : (dto.comment?.trim() ?? null);
@@ -508,7 +579,7 @@ export class ChecklistService {
     const requiredItems = this.getRequiredItems(submission.requestType, submission.isAbroad);
     const allApproved = requiredItems.every((item) => {
       const doc = submission.documents.find((d) => d.itemCode === item.code);
-      return doc?.reviewStatus === DocumentReviewStatus.APPROVED;
+      return doc?.reviewStatus === DocumentReviewStatus.APPROVED || doc?.reviewStatus === DocumentReviewStatus.ACKNOWLEDGED;
     });
     if (!allApproved) {
       throw new BadRequestException('Every document must be individually approved first');
@@ -543,7 +614,7 @@ export class ChecklistService {
     const requiredItems = this.getRequiredItems(submission.requestType, submission.isAbroad);
     const allApproved = requiredItems.every((item) => {
       const doc = submission.documents.find((d) => d.itemCode === item.code);
-      return doc?.reviewStatus === DocumentReviewStatus.APPROVED;
+      return doc?.reviewStatus === DocumentReviewStatus.APPROVED || doc?.reviewStatus === DocumentReviewStatus.ACKNOWLEDGED;
     });
     if (!allApproved) {
       throw new BadRequestException('Every document must be individually approved first');

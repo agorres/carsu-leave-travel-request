@@ -10,12 +10,13 @@ export interface FlatChecklistItem {
   groupLabel?: string;
 }
 
-export type DocumentReviewStatus = 'pending' | 'approved' | 'rejected';
+export type DocumentReviewStatus = 'pending' | 'approved' | 'rejected' | 'acknowledged';
 
 export interface SubmissionDocument {
   id: string;
   itemCode: string;
-  originalFileName: string;
+  isNotApplicable: boolean;
+  originalFileName: string | null;
   uploadedAt: string;
   reviewStatus: DocumentReviewStatus;
   reviewComment: string | null;
@@ -148,6 +149,15 @@ export function useChecklist() {
     });
   }
 
+  // Employee marks a required item as Not Applicable instead of uploading
+  // a file. Same locking/gating rules as uploadDocument on the backend.
+  async function markNotApplicable(submissionId: string, itemCode: string): Promise<SubmissionDocument> {
+    return $fetch(`${base}/checklist/submissions/${submissionId}/documents/${itemCode}/na`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+  }
+
   async function submitSubmission(submissionId: string): Promise<Submission> {
     return $fetch(`${base}/checklist/submissions/${submissionId}/submit`, {
       method: 'POST',
@@ -227,7 +237,7 @@ export function useChecklist() {
   async function reviewDocument(
     submissionId: string,
     itemCode: string,
-    status: 'approved' | 'rejected',
+    status: 'approved' | 'rejected' | 'acknowledged',
     comment?: string,
   ): Promise<SubmissionDocument> {
     return $fetch(`${base}/checklist/submissions/${submissionId}/documents/${itemCode}/review`, {
@@ -273,8 +283,8 @@ export function useChecklist() {
     });
   }
 
-    // Foreign Travel only — Admin Council endorses (forwards to President
-  // approval if IMP, or President endorsement if not). Requires a
+    // Foreign Travel only — Admin Council endorses (forwards to Board
+  // confirmation if IMP, or President endorsement if not). Requires a
   // certification file attached in the same action.
   async function adminCouncilEndorse(submissionId: string, file: File): Promise<Submission> {
     const formData = new FormData();
@@ -348,6 +358,7 @@ export function useChecklist() {
     getProgress,
     uploadDocument,
     removeDocument,
+    markNotApplicable,
     submitSubmission,
     listUldcSubcommitteeSubmissions,
     listUldcCommitteeSubmissions,

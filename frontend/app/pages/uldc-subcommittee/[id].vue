@@ -35,10 +35,10 @@ const STATUS_LABELS: Record<string, string> = {
   uldc_deliberation: 'Under ULDC Committee Deliberation',
   for_president_reference: 'For President\'s Reference',
   for_admin_council: 'For Admin Council',
-  for_board_confirmation: 'For Board Confirmation',
   for_president_approval: 'For President Approval',
-  board_confirmed: 'Confirmed by Board',
   president_approved: 'Approved by President',
+  for_board_confirmation: 'For Board Confirmation',
+  board_confirmed: 'Confirmed by Board',
   for_president_endorsement: 'For President Endorsement',
   for_board_approval: 'For Board Approval',
   board_approved: 'Approved by Board',
@@ -65,8 +65,9 @@ const isBoardApproved = computed(() => progress.value?.submission.status === 'bo
 // ULDC Committee. This request just shows up here for tracking.
 const isPastUldc = computed(() => {
   const s = progress.value?.submission.status
-  return s === 'uldc_deliberation' || s === 'for_president_reference' || s === 'for_admin_council' || s === 'for_board_confirmation' || s === 'for_president_approval' ||
-    s === 'board_confirmed' || s === 'president_approved' || s === 'for_president_endorsement' || s === 'for_board_approval' || s === 'board_approved'
+  return s === 'uldc_deliberation' || s === 'for_president_reference' || s === 'for_admin_council' || s === 'for_president_approval' ||
+    s === 'president_approved' || s === 'for_board_confirmation' || s === 'board_confirmed' ||
+    s === 'for_president_endorsement' || s === 'for_board_approval' || s === 'board_approved'
 })
 
 function formatDate(value: string | null) {
@@ -92,7 +93,10 @@ const hasAnyRejected = computed(() =>
 )
 const allApproved = computed(() => {
   if (!progress.value) return false
-  return progress.value.requiredItems.every((item) => docFor(item.code)?.reviewStatus === 'approved')
+  return progress.value.requiredItems.every((item) => {
+    const status = docFor(item.code)?.reviewStatus
+    return status === 'approved' || status === 'acknowledged'
+  })
 })
 
 async function approveDoc(itemCode: string) {
@@ -121,6 +125,19 @@ async function rejectDoc(itemCode: string) {
     applyReviewedDoc(itemCode, updated)
   } catch (e: any) {
     reviewErrorByCode[itemCode] = e?.data?.message || 'Could not reject this document.'
+  } finally {
+    reviewingCode.value = null
+  }
+}
+
+async function acknowledgeDoc(itemCode: string) {
+  reviewingCode.value = itemCode
+  reviewErrorByCode[itemCode] = ''
+  try {
+    const updated = await reviewDocument(id, itemCode, 'acknowledged')
+    applyReviewedDoc(itemCode, updated)
+  } catch (e: any) {
+    reviewErrorByCode[itemCode] = e?.data?.message || 'Could not acknowledge this item.'
   } finally {
     reviewingCode.value = null
   }
@@ -266,11 +283,12 @@ onMounted(async () => {
                   <div v-if="item.note" class="muted">{{ item.note }}</div>
                 </td>
                 <td>
-                  <span v-if="docFor(item.code)">{{ docFor(item.code)!.originalFileName }}</span>
+                  <span v-if="docFor(item.code)?.isNotApplicable" class="muted na-text">Marked Not Applicable</span>
+                  <span v-else-if="docFor(item.code)">{{ docFor(item.code)!.originalFileName }}</span>
                   <span v-else class="error-text">Not provided</span>
                                     <div>
                     <a
-                      v-if="docFor(item.code)"
+                      v-if="docFor(item.code) && !docFor(item.code)!.isNotApplicable"
                       :href="getDocumentDownloadUrl(progress.submission.id, item.code)"
                       class="view-link"
                       target="_blank"
@@ -279,10 +297,10 @@ onMounted(async () => {
                       View File →
                     </a>
                     <a
-                      v-if="docFor(item.code)"
+                      v-if="docFor(item.code) && !docFor(item.code)!.isNotApplicable"
                       :href="getDocumentDownloadUrl(progress.submission.id, item.code, { download: true })"
                       class="view-link"
-                      :download="docFor(item.code)!.originalFileName"
+                      :download="docFor(item.code)!.originalFileName!"
                     >
                       Download ↓
                     </a>
@@ -298,11 +316,23 @@ onMounted(async () => {
                   </span>
                   <span v-else class="muted">—</span>
                   <div v-if="docFor(item.code)?.reviewComment" class="review-comment">
-                    “{{ docFor(item.code)!.reviewComment }}”
+                    "{{ docFor(item.code)!.reviewComment }}"
                   </div>
                 </td>
                 <td v-if="isUnderScreening" class="review-cell">
-                  <template v-if="docFor(item.code)">
+                  <template v-if="docFor(item.code)?.isNotApplicable">
+                    <div class="review-buttons">
+                      <button
+                        class="review-btn approve"
+                        :disabled="reviewingCode === item.code || docFor(item.code)!.reviewStatus === 'acknowledged'"
+                        @click="acknowledgeDoc(item.code)"
+                      >
+                        {{ docFor(item.code)!.reviewStatus === 'acknowledged' ? 'Acknowledged' : 'Acknowledge' }}
+                      </button>
+                    </div>
+                    <p v-if="reviewErrorByCode[item.code]" class="item-error">{{ reviewErrorByCode[item.code] }}</p>
+                  </template>
+                  <template v-else-if="docFor(item.code)">
                     <textarea
                       v-model="commentDrafts[item.code]"
                       class="review-textarea"
@@ -469,6 +499,9 @@ onMounted(async () => {
   color: #b00020;
   font-size: 13.5px;
 }
+.na-text {
+  font-style: italic;
+}
 .admin-table {
   width: 100%;
   border-collapse: collapse;
@@ -561,8 +594,8 @@ onMounted(async () => {
   background: #eaf3ff;
   color: #1a5fb4;
 }
-.badge-board_confirmed,
 .badge-president_approved,
+.badge-board_confirmed,
 .badge-board_approved {
   background: #dff5df;
   color: var(--emerald);
@@ -610,7 +643,8 @@ onMounted(async () => {
   background: #eee;
   color: var(--gray);
 }
-.review-approved {
+.review-approved,
+.review-acknowledged {
   background: #dff5df;
   color: var(--emerald);
 }

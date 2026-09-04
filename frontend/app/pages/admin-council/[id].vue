@@ -29,9 +29,9 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
 const STATUS_LABELS: Record<string, string> = {
   for_admin_council: 'For Endorsement',
   for_president_approval: 'Endorsed — With President',
+  president_approved: 'Approved by President',
   for_board_confirmation: 'Approved — With Board',
   board_confirmed: 'Confirmed by Board',
-  president_approved: 'Approved by President',
   for_president_endorsement: 'Endorsed — With President',
   for_board_approval: 'With Board',
   board_approved: 'Approved by Board',
@@ -46,7 +46,7 @@ const statusLabel = computed(() => STATUS_LABELS[progress.value?.submission.stat
 const isForAdminCouncil = computed(() => progress.value?.submission.status === 'for_admin_council')
 const isPastAdminCouncil = computed(() => {
   const s = progress.value?.submission.status
-  return s === 'for_board_confirmation' || s === 'for_president_approval' || s === 'board_confirmed' || s === 'president_approved' ||
+  return s === 'for_president_approval' || s === 'president_approved' || s === 'for_board_confirmation' || s === 'board_confirmed' ||
     s === 'for_president_endorsement' || s === 'for_board_approval' || s === 'board_approved'
 })
 
@@ -207,11 +207,12 @@ onMounted(async () => {
                   <div v-if="item.note" class="muted">{{ item.note }}</div>
                 </td>
                 <td>
-                  <span v-if="docFor(item.code)">{{ docFor(item.code)!.originalFileName }}</span>
+                  <span v-if="docFor(item.code)?.isNotApplicable" class="muted na-text">Marked Not Applicable</span>
+                  <span v-else-if="docFor(item.code)">{{ docFor(item.code)!.originalFileName }}</span>
                   <span v-else class="error-text">Not provided</span>
                   <div>
                     <a
-                      v-if="docFor(item.code)"
+                      v-if="docFor(item.code) && !docFor(item.code)!.isNotApplicable"
                       :href="getDocumentDownloadUrl(progress.submission.id, item.code)"
                       class="view-link"
                       target="_blank"
@@ -363,6 +364,9 @@ onMounted(async () => {
 .error-text {
   color: #b00020;
   font-size: 13.5px;
+}
+.na-text {
+  font-style: italic;
 }
 .admin-table {
   width: 100%;

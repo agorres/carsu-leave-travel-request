@@ -11,6 +11,7 @@ export enum DocumentReviewStatus {
   PENDING = 'pending', // uploaded, not yet screened by admin
   APPROVED = 'approved',
   REJECTED = 'rejected',
+  ACKNOWLEDGED = 'acknowledged', // N/A items only — reviewer has acknowledged, no approve/reject applies
 }
 
 @Entity('submission_documents')
@@ -29,18 +30,23 @@ export class SubmissionDocument {
   @Column()
   itemCode: string;
 
-  @Column()
-  originalFileName: string;
+  // True when the employee has marked this requirement as Not Applicable
+  // instead of uploading a file. When true, the file columns below are null.
+  @Column({ default: false })
+  isNotApplicable: boolean;
+
+  @Column({ type: 'varchar', nullable: true })
+  originalFileName: string | null;
 
   // Path/key in storage (local disk, S3, etc — swap out in the service)
-  @Column()
-  storagePath: string;
+  @Column({ type: 'varchar', nullable: true })
+  storagePath: string | null;
 
-  @Column()
-  mimeType: string;
+  @Column({ type: 'varchar', nullable: true })
+  mimeType: string | null;
 
-  @Column({ type: 'bigint' })
-  fileSizeBytes: number;
+  @Column({ type: 'bigint', nullable: true })
+  fileSizeBytes: number | null;
 
   @Column({ type: 'enum', enum: DocumentReviewStatus, default: DocumentReviewStatus.PENDING })
   reviewStatus: DocumentReviewStatus;

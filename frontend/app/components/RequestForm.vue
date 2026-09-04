@@ -7,7 +7,7 @@ import { useAuth } from '~/composables/useAuth'
 const props = defineProps<{ initialSubmissionId?: string }>()
 
 const router = useRouter()
-const { listRequestTypes, createSubmission, getProgress, uploadDocument, removeDocument, submitSubmission } = useChecklist()
+const { listRequestTypes, createSubmission, getProgress, uploadDocument, removeDocument, markNotApplicable, submitSubmission } = useChecklist()
 const { user, logout } = useAuth()
 
 const types = ref<RequestTypeOption[]>([])
@@ -236,6 +236,20 @@ async function onRemove(itemCode: string) {
   removeLocalDocument(itemCode)
 }
 
+async function onMarkNotApplicable(itemCode: string) {
+  if (!submissionId.value) return
+  uploadingCode.value = itemCode
+  errorByCode.value = { ...errorByCode.value, [itemCode]: '' }
+  try {
+    const marked = await markNotApplicable(submissionId.value, itemCode)
+    applyUploadedDocument(itemCode, marked)
+  } catch (e: any) {
+    errorByCode.value = { ...errorByCode.value, [itemCode]: e?.data?.message || 'Could not mark this Not Applicable.' }
+  } finally {
+    uploadingCode.value = null
+  }
+}
+
 async function submitRequest() {
   if (!submissionId.value || !readyToSubmit.value) return
   submitting.value = true
@@ -450,7 +464,8 @@ const groupedItems = computed(() => {
                 <td class="col-body">
                   <span class="item-label">{{ item.label }}</span>
                   <span v-if="item.note" class="item-note">{{ item.note }}</span>
-                  <span v-if="docFor(item.code)" class="item-file">
+                  <span v-if="docFor(item.code)?.isNotApplicable" class="item-file na-file">Marked Not Applicable</span>
+                  <span v-else-if="docFor(item.code)" class="item-file">
                     {{ docFor(item.code)!.originalFileName }}
                   </span>
                   <span
@@ -461,21 +476,41 @@ const groupedItems = computed(() => {
                     {{ docFor(item.code)!.reviewStatus }}
                   </span>
                   <span v-if="docFor(item.code)?.reviewComment" class="review-comment">
-                    ULDC: “{{ docFor(item.code)!.reviewComment }}”
+                    ULDC: "{{ docFor(item.code)!.reviewComment }}"
                   </span>
                   <span v-if="errorByCode[item.code]" class="item-error">{{ errorByCode[item.code] }}</span>
                 </td>
                 <td class="col-action">
                   <template v-if="itemEditable(item.code)">
-                    <label class="upload-btn" :class="{ busy: uploadingCode === item.code }">
-                      {{ uploadingCode === item.code ? 'Uploading…' : (docFor(item.code) ? 'Replace' : 'Upload') }}
-                      <input
-                        type="file"
-                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                        hidden
-                        @change="onFileChange(item.code, $event)"
-                      />
-                    </label>
+                    <div class="action-group">
+                      <label class="upload-btn" :class="{ busy: uploadingCode === item.code }">
+                        {{ uploadingCode === item.code ? 'Uploading…' : (docFor(item.code) && !docFor(item.code)!.isNotApplicable ? 'Replace' : 'Upload') }}
+                        <input
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                          hidden
+                          @change="onFileChange(item.code, $event)"
+                        />
+                      </label>
+                      <button
+                        v-if="docFor(item.code)?.isNotApplicable"
+                        type="button"
+                        class="na-btn"
+                        :disabled="uploadingCode === item.code"
+                        @click="onRemove(item.code)"
+                      >
+                        Undo N/A
+                      </button>
+                      <button
+                        v-else
+                        type="button"
+                        class="na-btn"
+                        :disabled="uploadingCode === item.code"
+                        @click="onMarkNotApplicable(item.code)"
+                      >
+                        Mark N/A
+                      </button>
+                    </div>
                   </template>
                   <span v-else class="item-file">Locked</span>
                 </td>
@@ -911,16 +946,28 @@ const groupedItems = computed(() => {
   color: var(--primary-green);
   font-family: 'IBM Plex Mono', monospace;
 }
+.item-file.na-file {
+  color: var(--gray);
+  font-style: italic;
+  font-family: inherit;
+}
 .item-error {
   font-size: 12px;
   color: #c0392b;
 }
 .col-action {
-  width: 110px;
+  width: 150px;
   text-align: right;
 }
+.action-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
 .upload-btn,
-.remove-btn {
+.remove-btn,
+.na-btn {
   display: inline-block;
   border: none;
   padding: 7px 14px;
@@ -940,6 +987,15 @@ const groupedItems = computed(() => {
   background: transparent;
   color: var(--gray);
   border: 1px solid #ddd;
+}
+.na-btn {
+  background: transparent;
+  color: var(--gray);
+  border: 1px solid #ddd;
+}
+.na-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .returned-banner {
@@ -974,7 +1030,8 @@ const groupedItems = computed(() => {
   background: #eee;
   color: var(--gray);
 }
-.review-approved {
+.review-approved,
+.review-acknowledged {
   background: #dff5df;
   color: var(--emerald);
 }

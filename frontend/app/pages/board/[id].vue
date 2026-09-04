@@ -28,10 +28,10 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   for_board_deliberation: 'For Board Deliberation',
-  for_president_approval: 'With President — For Approval',
+  for_president_approval: 'With President',
+  president_approved: 'Approved by President',
   for_board_confirmation: 'For Board Confirmation',
   board_confirmed: 'Confirmed by Board',
-  president_approved: 'Approved by President',
   for_board_approval: 'For Board Approval',
   board_approved: 'Approved by Board',
 }
@@ -43,11 +43,11 @@ const typeLabel = computed(() => {
 
 const statusLabel = computed(() => STATUS_LABELS[progress.value?.submission.status ?? ''] ?? '')
 const isForBoard = computed(() => progress.value?.submission.status === 'for_board_deliberation')
+const isForPresidentApproval = computed(() => progress.value?.submission.status === 'for_president_approval')
+const isPresidentApproved = computed(() => progress.value?.submission.status === 'president_approved')
 const isForBoardConfirmation = computed(() => progress.value?.submission.status === 'for_board_confirmation')
 const isBoardConfirmed = computed(() => progress.value?.submission.status === 'board_confirmed')
 const isForBoardApproval = computed(() => progress.value?.submission.status === 'for_board_approval')
-const isForPresidentApproval = computed(() => progress.value?.submission.status === 'for_president_approval')
-const isPresidentApproved = computed(() => progress.value?.submission.status === 'president_approved')
 const isBoardApproved = computed(() => progress.value?.submission.status === 'board_approved')
 
 function formatDate(value: string | null) {
@@ -131,10 +131,8 @@ onMounted(async () => {
             <span class="muted">Approved by ULDC {{ formatDateTime(progress.submission.uldcApprovedAt) }}</span>
             <span v-if="progress.submission.adminCouncilEndorsedAt" class="muted">Endorsed by Admin Council {{ formatDateTime(progress.submission.adminCouncilEndorsedAt) }}</span>
             <span v-if="progress.submission.presidentEndorsedAt" class="muted">Endorsed by President {{ formatDateTime(progress.submission.presidentEndorsedAt) }}</span>
-            <span v-if="isForBoardConfirmation || isBoardConfirmed" class="muted">Approved by President {{ formatDateTime(progress.submission.presidentApprovedAt) }}</span>
+            <span v-if="isForBoardConfirmation || isBoardConfirmed || isPresidentApproved" class="muted">Approved by President {{ formatDateTime(progress.submission.presidentApprovedAt) }}</span>
             <span v-if="isBoardConfirmed" class="muted">Confirmed by Board {{ formatDateTime(progress.submission.boardConfirmedAt) }}</span>
-            <span v-if="isPresidentApproved" class="muted">Confirmed by Board {{ formatDateTime(progress.submission.boardConfirmedAt) }}</span>
-            <span v-if="isPresidentApproved" class="muted">Approved by President {{ formatDateTime(progress.submission.presidentApprovedAt) }}</span>
             <span v-if="isBoardApproved" class="muted">Approved by Board {{ formatDateTime(progress.submission.boardApprovedAt) }}</span>
           </div>
                     <div v-if="progress.submission.referenceSlipOriginalFileName || progress.submission.certificationOriginalFileName" class="status-row">
@@ -218,11 +216,12 @@ onMounted(async () => {
                   <div v-if="item.note" class="muted">{{ item.note }}</div>
                 </td>
                 <td>
-                  <span v-if="docFor(item.code)">{{ docFor(item.code)!.originalFileName }}</span>
+                  <span v-if="docFor(item.code)?.isNotApplicable" class="muted na-text">Marked Not Applicable</span>
+                  <span v-else-if="docFor(item.code)">{{ docFor(item.code)!.originalFileName }}</span>
                   <span v-else class="error-text">Not provided</span>
                   <div>
                     <a
-                      v-if="docFor(item.code)"
+                      v-if="docFor(item.code) && !docFor(item.code)!.isNotApplicable"
                       :href="getDocumentDownloadUrl(progress.submission.id, item.code)"
                       class="view-link"
                       target="_blank"
@@ -261,26 +260,22 @@ onMounted(async () => {
             <p v-if="boardApproveError" class="item-error">{{ boardApproveError }}</p>
           </div>
 
+          <div v-else-if="isForPresidentApproval || isPresidentApproved" class="screening-actions">
+            <p class="muted">The Admin Council has endorsed this Foreign Travel (IMP) request. It is currently with the President for approval and hasn't reached the Board yet — no action needed from the Board at this time.</p>
+          </div>
+
           <div v-else-if="isForBoardConfirmation" class="screening-actions">
             <p class="muted">The President has approved this Foreign Travel (IMP) request. Review the documents above, then record the Board's final confirmation.</p>
             <div class="action-buttons">
               <button class="action-btn primary" :disabled="confirming" @click="onBoardConfirm">
-                {{ confirming ? 'Confirming…' : 'Confirm — Final Confirmation' }}
+                {{ confirming ? 'Confirming…' : 'Confirm — Final Decision' }}
               </button>
             </div>
             <p v-if="confirmError" class="item-error">{{ confirmError }}</p>
           </div>
 
-          <div v-else-if="isForPresidentApproval" class="screening-actions">
-            <p class="muted">This request is with the President for approval — no further action needed from the Board yet.</p>
-          </div>
-
           <div v-else-if="isBoardConfirmed" class="screening-actions">
             <p class="muted">✓ This request has been confirmed by the Board. No further action needed.</p>
-          </div>
-
-          <div v-else-if="isPresidentApproved" class="screening-actions">
-            <p class="muted">This request has moved past the Board and is now approved by the President — no further action needed from the Board.</p>
           </div>
 
           <div v-else-if="isBoardApproved" class="screening-actions">
@@ -396,6 +391,9 @@ onMounted(async () => {
   color: #b00020;
   font-size: 13.5px;
 }
+.na-text {
+  font-style: italic;
+}
 .admin-table {
   width: 100%;
   border-collapse: collapse;
@@ -464,8 +462,8 @@ onMounted(async () => {
   background: #eaf3ff;
   color: #1a5fb4;
 }
-.badge-board_confirmed,
 .badge-president_approved,
+.badge-board_confirmed,
 .badge-board_approved {
   background: #dff5df;
   color: var(--emerald);
