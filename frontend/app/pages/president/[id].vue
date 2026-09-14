@@ -273,7 +273,7 @@ onMounted(async () => {
                   <span v-if="docFor(item.code)?.isNotApplicable" class="muted na-text">Marked Not Applicable</span>
                   <span v-else-if="docFor(item.code)">{{ docFor(item.code)!.originalFileName }}</span>
                   <span v-else class="error-text">Not provided</span>
-                  <div>
+                  <div class="file-actions">
                     <a
                       v-if="docFor(item.code) && !docFor(item.code)!.isNotApplicable"
                       :href="getDocumentDownloadUrl(progress.submission.id, item.code)"
@@ -507,7 +507,7 @@ onMounted(async () => {
   letter-spacing: 0.03em;
 }
 .admin-table td {
-  padding: 12px;
+  padding: 16px 14px;
   border-bottom: 1px solid #eee;
   vertical-align: top;
 }
@@ -533,6 +533,13 @@ onMounted(async () => {
 .view-link:hover {
   background: var(--primary-green);
   color: #fff;
+}
+.file-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
 }
 .status-card {
   display: flex;
