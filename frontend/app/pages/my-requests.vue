@@ -127,6 +127,7 @@ onMounted(loadRequests)
         <table v-else class="req-table">
           <thead>
             <tr>
+              <th>Application No.</th>
               <th>Request Type</th>
               <th>Created</th>
               <th>Status</th>
@@ -135,6 +136,7 @@ onMounted(loadRequests)
           </thead>
           <tbody>
             <tr v-for="s in sortedSubmissions" :key="s.id" :class="{ 'row-attention': s.status === 'returned_for_correction' }">
+              <td class="app-number">{{ s.applicationNumber ?? '—' }}</td>
               <td>{{ typeLabel(s.requestType) }}</td>
               <td>{{ formatDate(s.createdAt ?? s.submittedAt) }}</td>
               <td>
@@ -244,7 +246,7 @@ onMounted(loadRequests)
   display: flex;
   flex-direction: column;
   gap: 20px;
-  max-width: 860px;
+  max-width: 1100px;
   width: 100%;
   margin: 0 auto;
 }
@@ -341,6 +343,12 @@ onMounted(loadRequests)
 }
 .row-attention {
   background: #fdf6f6;
+}
+.app-number {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12.5px;
+  color: var(--gray);
+  white-space: nowrap;
 }
 .status-pill {
   display: inline-block;

@@ -20,6 +20,7 @@ const OFFICE_AFFILIATION_OPTIONS = ['OVPAA', 'OVPAF', 'OVPRDIE', 'OVPSAS']
 const selectedType = ref<string>('')
 const isAbroad = ref(false)
 const isImp = ref(false)
+const travelPurpose = ref<'official' | 'personal' | ''>('')
 const employeeName = ref('')
 const employeeUsername = ref('')
 const officeAffiliation = ref('')
@@ -35,6 +36,7 @@ const employeeEmail = computed(() =>
 )
 
 const ABROAD_ELIGIBLE = ['study_leave', 'foreign_travel']
+const TRAVEL_PURPOSE_APPLICABLE = ['local_travel', 'foreign_travel', 'personal_travel']
 
 const submissionId = ref<string | null>(null)
 const progress = ref<SubmissionProgress | null>(null)
@@ -54,7 +56,8 @@ const infoComplete = computed(() => {
     !!inclusiveDateFrom.value &&
     !!inclusiveDateTo.value &&
     yearsInPosition.value !== null && yearsInPosition.value >= 0 &&
-    yearsInCsu.value !== null && yearsInCsu.value >= 0
+    yearsInCsu.value !== null && yearsInCsu.value >= 0 &&
+    (!TRAVEL_PURPOSE_APPLICABLE.includes(selectedType.value) || !!travelPurpose.value)
   )
 })
 
@@ -134,6 +137,7 @@ onMounted(async () => {
       selectedType.value = s.requestType
       isAbroad.value = s.isAbroad
       isImp.value = s.isImp
+      travelPurpose.value = s.travelPurpose ?? ''
       employeeName.value = s.employeeName
       employeeUsername.value = s.employeeEmail.replace(/@carsu\.edu\.ph$/, '')
       officeAffiliation.value = s.officeAffiliation
@@ -159,6 +163,9 @@ async function beginChecklist() {
       requestType: selectedType.value,
       isAbroad: isAbroad.value,
       isImp: selectedType.value === 'foreign_travel' ? isImp.value : false,
+      travelPurpose: TRAVEL_PURPOSE_APPLICABLE.includes(selectedType.value) && travelPurpose.value
+        ? travelPurpose.value
+        : undefined,
       employeeName: employeeName.value.trim(),
       employeeEmail: employeeEmail.value.trim(),
       officeAffiliation: officeAffiliation.value.trim(),
@@ -424,6 +431,30 @@ const groupedItems = computed(() => {
             <input type="checkbox" v-model="isImp" :disabled="!!submissionId" />
             This travel is IMP
           </label>
+
+          <div v-if="TRAVEL_PURPOSE_APPLICABLE.includes(selectedType)" class="field">
+            <label>Nature of Travel</label>
+            <div class="purpose-toggle">
+              <button
+                type="button"
+                class="purpose-btn"
+                :class="{ active: travelPurpose === 'official' }"
+                :disabled="!!submissionId"
+                @click="travelPurpose = 'official'"
+              >
+                Official Travel
+              </button>
+              <button
+                type="button"
+                class="purpose-btn"
+                :class="{ active: travelPurpose === 'personal' }"
+                :disabled="!!submissionId"
+                @click="travelPurpose = 'personal'"
+              >
+                Personal Travel
+              </button>
+            </div>
+          </div>
 
           <button
             v-if="!submissionId"
@@ -808,6 +839,36 @@ const groupedItems = computed(() => {
 }
 .abroad-toggle input {
   accent-color: var(--primary-green);
+}
+
+.purpose-toggle {
+  display: flex;
+  gap: 8px;
+}
+.purpose-btn {
+  flex: 1;
+  padding: 9px 14px;
+  border: 1px solid #dcdcdc;
+  background: #fff;
+  color: var(--gray);
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.purpose-btn:hover:not(:disabled):not(.active) {
+  border-color: var(--primary-green);
+  color: var(--emerald);
+}
+.purpose-btn.active {
+  background: var(--primary-green);
+  border-color: var(--primary-green);
+  color: #fff;
+}
+.purpose-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .begin-btn {

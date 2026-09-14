@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, Like, Repository } from 'typeorm';
 import { CHECKLISTS, ChecklistItemDef, getChecklistDef } from './checklist-config.data';
-import { RequestType, REQUEST_TYPE_LABELS } from './request-type.enum';
-import { Submission, SubmissionStatus, LOCKED_SUBMISSION_STATUSES } from './entities/submission.entity';
+import { RequestType, REQUEST_TYPE_LABELS, REQUEST_TYPE_PREFIXES, TRAVEL_PURPOSE_APPLICABLE_TYPES } from './request-type.enum';
+import { Submission, SubmissionStatus, LOCKED_SUBMISSION_STATUSES, TravelPurpose } from './entities/submission.entity';
 import { SubmissionDocument, DocumentReviewStatus } from './entities/submission-document.entity';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 import { ReviewDocumentDto } from './dto/review-document.dto';
@@ -77,7 +77,11 @@ export class ChecklistService {
   async createSubmission(dto: CreateSubmissionDto): Promise<Submission> {
   this.getChecklist(dto.requestType);
 
+  const applicationNumber = await this.generateApplicationNumber(dto.requestType);
+  const travelPurposeApplicable = TRAVEL_PURPOSE_APPLICABLE_TYPES.includes(dto.requestType);
+
   const submission = this.submissionRepo.create({
+    applicationNumber,
     employeeEmail: dto.employeeEmail,
     employeeName: dto.employeeName,
     officeAffiliation: dto.officeAffiliation,
@@ -90,10 +94,29 @@ export class ChecklistService {
     requestType: dto.requestType,
     isAbroad: dto.isAbroad ?? false,
     isImp: dto.isImp ?? false,
+    travelPurpose: travelPurposeApplicable ? (dto.travelPurpose ?? null) : null,
     status: SubmissionStatus.IN_PROGRESS,
   });
   return this.submissionRepo.save(submission);
 }
+
+  /**
+   * Builds a per-request-type, per-year application number, e.g.
+   * "FT-2026-0001". The running count is derived from existing rows
+   * sharing the same prefix+year rather than a dedicated sequence table,
+   * which is good enough for this app's traffic but — like the
+   * synchronize: true enum issue noted on the entity — isn't safe
+   * against two submissions being created at the exact same instant.
+   */
+  private async generateApplicationNumber(requestType: RequestType): Promise<string> {
+    const prefix = REQUEST_TYPE_PREFIXES[requestType];
+    const year = new Date().getFullYear();
+    const count = await this.submissionRepo.count({
+      where: { applicationNumber: Like(`${prefix}-${year}-%`) },
+    });
+    const sequence = String(count + 1).padStart(4, '0');
+    return `${prefix}-${year}-${sequence}`;
+  }
   async getSubmission(id: string): Promise<Submission> {
     const submission = await this.submissionRepo.findOne({
       where: { id },

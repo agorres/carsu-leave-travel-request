@@ -1,5 +1,6 @@
 import { IsBoolean, IsDateString, IsEmail, IsEnum, IsInt, IsOptional, IsString, Min, MinLength } from 'class-validator';
 import { RequestType } from '../request-type.enum';
+import { TravelPurpose } from '../entities/submission.entity';
 
 export class CreateSubmissionDto {
   @IsEnum(RequestType)
@@ -14,6 +15,13 @@ export class CreateSubmissionDto {
   @IsOptional()
   @IsBoolean()
   isImp?: boolean;
+
+  // Local Travel, Foreign Travel, and Personal Travel requests only —
+  // whether the trip is official or personal. Ignored for every other
+  // request type.
+  @IsOptional()
+  @IsEnum(TravelPurpose)
+  travelPurpose?: TravelPurpose;
 
   @IsString()
   @MinLength(2)

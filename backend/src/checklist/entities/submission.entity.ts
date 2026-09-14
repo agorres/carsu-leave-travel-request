@@ -9,6 +9,11 @@ import {
 import { RequestType } from '../request-type.enum';
 import { SubmissionDocument } from './submission-document.entity';
 
+export enum TravelPurpose {
+  OFFICIAL = 'official',
+  PERSONAL = 'personal',
+}
+
 export enum SubmissionStatus {
   IN_PROGRESS = 'in_progress', // employee still uploading
   COMPLETE = 'complete', // all required items uploaded, ready to submit
@@ -57,6 +62,14 @@ export class Submission {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  // Human-readable reference assigned at creation, e.g. "FT-2026-0001".
+  // Prefix comes from REQUEST_TYPE_PREFIXES, year from creation date, and
+  // the number is per-prefix-per-year (see generateApplicationNumber in
+  // ChecklistService). Nullable so pre-existing rows don't break under
+  // synchronize: true.
+  @Column({ type: 'varchar', unique: true, nullable: true })
+  applicationNumber: string | null;
+
   // Comes from the HR login session (employee email / ID)
   @Column()
   employeeEmail: string;
@@ -100,6 +113,12 @@ export class Submission {
   // (see SubmissionStatus). Ignored for every other request type.
   @Column({ default: false })
   isImp: boolean;
+
+  // Set for Local Travel, Foreign Travel, and Personal Travel requests —
+  // whether the trip itself is official (CSU business) or personal in
+  // nature. Ignored/null for every other request type.
+  @Column({ type: 'enum', enum: TravelPurpose, nullable: true })
+  travelPurpose: TravelPurpose | null;
 
   @Column({ type: 'enum', enum: SubmissionStatus, default: SubmissionStatus.IN_PROGRESS })
   status: SubmissionStatus;

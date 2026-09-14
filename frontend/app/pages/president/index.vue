@@ -85,6 +85,7 @@ onMounted(async () => {
         <table class="admin-table">
           <thead>
             <tr>
+              <th>Application No.</th>
               <th>Employee</th>
               <th>Office / Unit</th>
               <th>Request Type</th>
@@ -95,6 +96,7 @@ onMounted(async () => {
           </thead>
           <tbody>
             <tr v-for="s in submissions" :key="s.id">
+              <td class="app-number">{{ s.applicationNumber ?? '—' }}</td>
               <td>
                 <div class="employee-name">{{ s.employeeName }}</div>
                 <div class="employee-email">{{ s.employeeEmail }}</div>
@@ -106,6 +108,7 @@ onMounted(async () => {
               <td>
                 {{ typeLabel(s.requestType) }}
                 <span class="imp-tag">{{ s.isImp ? 'IMP' : 'non-IMP' }}</span>
+                <span v-if="s.travelPurpose" class="purpose-tag" :class="`purpose-${s.travelPurpose}`">{{ s.travelPurpose === 'official' ? 'Official' : 'Personal' }}</span>
               </td>
               <td>{{ formatDate(s.adminCouncilEndorsedAt) }}</td>
               <td>
@@ -168,15 +171,15 @@ onMounted(async () => {
   background: rgba(255, 255, 255, 0.12);
 }
 .admin-body {
-  max-width: 1000px;
+  max-width: 1400px;
   margin: 28px auto;
-  padding: 0 20px;
+  padding: 0 28px;
 }
 .admin-card {
   background: #fff;
   border: 1px solid #dcdcdc;
   border-radius: 8px;
-  padding: 20px;
+  padding: 28px;
 }
 .muted {
   color: var(--gray);
@@ -193,7 +196,7 @@ onMounted(async () => {
 }
 .admin-table th {
   text-align: left;
-  padding: 10px 12px;
+  padding: 14px 18px;
   border-bottom: 2px solid #e5e5e5;
   color: var(--gray);
   font-size: 12px;
@@ -201,9 +204,15 @@ onMounted(async () => {
   letter-spacing: 0.03em;
 }
 .admin-table td {
-  padding: 12px;
+  padding: 16px 18px;
   border-bottom: 1px solid #eee;
   vertical-align: top;
+}
+.app-number {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  color: var(--gray);
+  white-space: nowrap;
 }
 .employee-name {
   font-weight: 600;
@@ -265,5 +274,21 @@ onMounted(async () => {
   font-weight: 700;
   background: #f1e8fd;
   color: #5a2ca0;
+}
+.purpose-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.purpose-official {
+  background: #eaf3ff;
+  color: #1a5fb4;
+}
+.purpose-personal {
+  background: #fdf1e0;
+  color: #a05a1a;
 }
 </style>

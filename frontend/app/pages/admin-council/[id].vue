@@ -191,6 +191,10 @@ onMounted(async () => {
               <span class="info-label">Request Type</span>
               <span class="info-value">{{ typeLabel }} — {{ progress.submission.isImp ? 'IMP' : 'non-IMP' }}</span>
             </div>
+            <div v-if="progress.submission.travelPurpose" class="info-field">
+              <span class="info-label">Nature of Travel</span>
+              <span class="info-value purpose-value" :class="`purpose-${progress.submission.travelPurpose}`">{{ progress.submission.travelPurpose === 'official' ? 'Official Travel' : 'Personal Travel' }}</span>
+            </div>
             <div class="info-field">
               <span class="info-label">Inclusive Dates</span>
               <span class="info-value">{{ formatDate(progress.submission.inclusiveDateFrom) }} — {{ formatDate(progress.submission.inclusiveDateTo) }}</span>
@@ -380,6 +384,21 @@ onMounted(async () => {
 .info-value {
   font-size: 14px;
   color: #1a1a1a;
+}
+.purpose-value {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.purpose-official {
+  background: #eaf3ff;
+  color: #1a5fb4;
+}
+.purpose-personal {
+  background: #fdf1e0;
+  color: #a05a1a;
 }
 .muted {
   color: var(--gray);

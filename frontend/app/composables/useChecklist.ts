@@ -45,8 +45,11 @@ export type SubmissionStatus =
   // final for standard flow AND Foreign Travel + non-IMP
   | 'board_approved';
 
+export type TravelPurpose = 'official' | 'personal';
+
 export interface Submission {
   id: string;
+  applicationNumber: string | null;
   employeeEmail: string;
   employeeName: string;
   officeAffiliation: string;
@@ -59,6 +62,7 @@ export interface Submission {
   requestType: string;
   isAbroad: boolean;
   isImp: boolean;
+  travelPurpose: TravelPurpose | null;
   status: SubmissionStatus;
   submittedAt: string | null;
   returnedAt: string | null;
@@ -91,6 +95,7 @@ export interface CreateSubmissionInput {
   requestType: string;
   isAbroad: boolean;
   isImp: boolean;
+  travelPurpose?: TravelPurpose;
   employeeName: string;
   employeeEmail: string;
   officeAffiliation: string;
