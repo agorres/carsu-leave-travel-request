@@ -74,6 +74,15 @@ const sortedSubmissions = computed(() => {
     const pa = priority[a.status] ?? 9
     const pb = priority[b.status] ?? 9
     if (pa !== pb) return pa - pb
+    // Within the completed group, sort by when it was actually approved —
+    // not when it was first created — so a request approved today doesn't
+    // get buried under older (but still-pending) requests just because it
+    // was filed earlier. Everything else keeps sorting by creation date.
+    if (pa === 3) {
+      const aDone = a.boardConfirmedAt ?? a.boardApprovedAt ?? a.createdAt ?? 0
+      const bDone = b.boardConfirmedAt ?? b.boardApprovedAt ?? b.createdAt ?? 0
+      return new Date(bDone).getTime() - new Date(aDone).getTime()
+    }
     return new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
   })
 })
@@ -246,7 +255,7 @@ onMounted(loadRequests)
   display: flex;
   flex-direction: column;
   gap: 20px;
-  max-width: 1100px;
+  max-width: 1400px;
   width: 100%;
   margin: 0 auto;
 }
