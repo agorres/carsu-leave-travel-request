@@ -30,7 +30,7 @@ const STATUS_LABELS: Record<string, string> = {
   for_board_confirmation: 'Approved — With Board',
   board_confirmed: 'Approved by Board',
   for_president_endorsement: 'For Endorsement',
-  for_board_approval: 'Endorsed — With Board',
+  for_board_approval: 'With Board',
   board_approved: 'Approved by Board',
 }
 
@@ -45,6 +45,18 @@ function statusLabel(status: string) {
 function formatDate(value: string | null) {
   if (!value) return '—'
   return new Date(value).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+// The President's queue has two entry points: fresh out of ULDC Committee
+// deliberation (awaiting a reference slip — Admin Council hasn't acted
+// yet) or fresh out of Admin Council endorsement (awaiting approval).
+// Show which body actually forwarded it, not just a bare date that read
+// as blank/missing for the reference-slip stage.
+function forwardedBy(s: Submission): { label: string; date: string | null } {
+  if (s.adminCouncilEndorsedAt) {
+    return { label: 'Admin Council', date: s.adminCouncilEndorsedAt }
+  }
+  return { label: 'ULDC Committee', date: s.uldcDeliberationAt }
 }
 
 onMounted(async () => {
@@ -89,7 +101,7 @@ onMounted(async () => {
               <th>Employee</th>
               <th>Office / Unit</th>
               <th>Request Type</th>
-              <th>Admin Council Endorsed</th>
+              <th>Forwarded By</th>
               <th>Status</th>
               <th></th>
             </tr>
@@ -110,7 +122,10 @@ onMounted(async () => {
                 <span class="imp-tag">{{ s.isImp ? 'IMP' : 'non-IMP' }}</span>
                 <span v-if="s.travelPurpose" class="purpose-tag" :class="`purpose-${s.travelPurpose}`">{{ s.travelPurpose === 'official' ? 'Official' : 'Personal' }}</span>
               </td>
-              <td>{{ formatDate(s.adminCouncilEndorsedAt) }}</td>
+              <td>
+                <div>{{ forwardedBy(s).label }}</div>
+                <div class="muted">{{ formatDate(forwardedBy(s).date) }}</div>
+              </td>
               <td>
                 <span class="status-pill" :class="`pill-${s.status}`">{{ statusLabel(s.status) }}</span>
               </td>

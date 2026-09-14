@@ -52,8 +52,8 @@ export class UldcSubcommitteeGuard implements CanActivate {
   }
 }
 
-// ULDC Committee-only — full-body deliberation action. Today this is only
-// reachable on the Foreign Travel + IMP path (SubmissionStatus.ULDC_DELIBERATION).
+// ULDC Committee-only — full-body deliberation action. Reachable on every
+// Foreign Travel request, IMP or not (SubmissionStatus.ULDC_DELIBERATION).
 @Injectable()
 export class UldcCommitteeGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
@@ -66,7 +66,8 @@ export class UldcCommitteeGuard implements CanActivate {
 }
 
 // Board-only — confirmation (Foreign Travel + IMP) and final approval
-// (standard flow, and Foreign Travel + non-IMP) actions.
+// (standard flow, and Foreign Travel + non-IMP, straight from Admin
+// Council endorsement) actions.
 @Injectable()
 export class BoardGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
@@ -90,8 +91,8 @@ export class AdminCouncilGuard implements CanActivate {
   }
 }
 
-// President-only — Foreign Travel endorsement (non-IMP) and final
-// approval (IMP) actions.
+// President-only — Foreign Travel reference-slip (both IMP and non-IMP)
+// and final approval (IMP only) actions.
 @Injectable()
 export class PresidentGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {

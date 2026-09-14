@@ -35,6 +35,8 @@ const STATUS_LABELS: Record<string, string> = {
   president_approved: 'Approved by President',
   for_board_confirmation: 'For Board Confirmation',
   board_confirmed: 'Confirmed by Board',
+  for_board_approval: 'For Board Approval',
+  board_approved: 'Approved by Board',
 }
 
 const typeLabel = computed(() => {
@@ -54,7 +56,16 @@ const returnedByLabel = computed(
 )
 const isPastDeliberation = computed(() => {
   const s = progress.value?.submission.status
-  return s === 'for_president_reference' || s === 'for_admin_council' || s === 'for_president_approval' || s === 'president_approved' || s === 'for_board_confirmation' || s === 'board_confirmed'
+  return (
+    s === 'for_president_reference' ||
+    s === 'for_admin_council' ||
+    s === 'for_president_approval' ||
+    s === 'president_approved' ||
+    s === 'for_board_confirmation' ||
+    s === 'board_confirmed' ||
+    s === 'for_board_approval' ||
+    s === 'board_approved'
+  )
 })
 
 function formatDate(value: string | null) {
@@ -589,9 +600,14 @@ onMounted(async () => {
   color: #a05a1a;
 }
 .badge-president_approved,
-.badge-board_confirmed {
+.badge-board_confirmed,
+.badge-board_approved {
   background: #dff5df;
   color: var(--emerald);
+}
+.badge-for_board_approval {
+  background: #eaf3ff;
+  color: #1a5fb4;
 }
 .screening-actions {
   display: flex;

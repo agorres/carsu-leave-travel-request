@@ -124,6 +124,7 @@ onMounted(async () => {
           <div class="status-row">
             <span class="status-badge" :class="`badge-${progress.submission.status}`">{{ statusLabel }}</span>
             <span class="muted">Approved by ULDC {{ formatDateTime(progress.submission.uldcApprovedAt) }}</span>
+            <span v-if="progress.submission.presidentReferencedAt" class="muted">Referred by President {{ formatDateTime(progress.submission.presidentReferencedAt) }}</span>
             <span v-if="isPastAdminCouncil" class="muted">Endorsed by Admin Council {{ formatDateTime(progress.submission.adminCouncilEndorsedAt) }}</span>
           </div>
           <div v-if="progress.submission.referenceSlipOriginalFileName || progress.submission.certificationOriginalFileName" class="status-row">
@@ -270,7 +271,7 @@ onMounted(async () => {
 
         <section class="admin-card">
           <div v-if="isForAdminCouncil" class="screening-actions">
-            <p class="muted">ULDC has forwarded this Foreign Travel request. Review the documents above, attach the certification, then endorse it to continue the approval flow.</p>
+            <p class="muted">The President has referred this Foreign Travel request. Review the documents above, attach the certification, then endorse it to continue the approval flow.</p>
             <div class="action-buttons">
               <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" @change="onCertificationFileChange" />
               <button class="action-btn primary" :disabled="endorsing" @click="onEndorse">

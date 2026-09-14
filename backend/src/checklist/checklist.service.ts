@@ -166,9 +166,11 @@ export class ChecklistService {
   }
 
   /**
-   * ULDC Committee view (Foreign Travel + IMP only): requests currently
-   * under full-body deliberation, plus anything the Committee has already
-   * forwarded further downstream, for tracking.
+   * ULDC Committee view (Foreign Travel, both IMP and non-IMP): requests
+   * currently under full-body deliberation, plus anything the Committee
+   * has already forwarded further downstream, for tracking — including
+   * both the IMP path (through Board confirmation) and the non-IMP path
+   * (straight to Board approval after Admin Council endorses).
    */
   async listUldcCommitteeSubmissions(): Promise<Submission[]> {
     return this.submissionRepo.find({
@@ -181,10 +183,12 @@ export class ChecklistService {
           SubmissionStatus.PRESIDENT_APPROVED,
           SubmissionStatus.FOR_BOARD_CONFIRMATION,
           SubmissionStatus.BOARD_CONFIRMED,
+          SubmissionStatus.FOR_BOARD_APPROVAL,
+          SubmissionStatus.BOARD_APPROVED,
         ]),
       },
       relations: { documents: true },
-      order: { uldcDeliberationAt: 'DESC' },
+      order: { uldcApprovedAt: 'DESC' },
     });
   }
 
@@ -213,8 +217,9 @@ export class ChecklistService {
   }
 
   /**
-   * Admin Council view (Foreign Travel only): requests ULDC has forwarded
-   * for endorsement, plus anything further downstream for tracking.
+   * Admin Council view (Foreign Travel only): requests the President has
+   * referred for endorsement, plus anything further downstream for
+   * tracking.
    */
   async listAdminCouncilSubmissions(): Promise<Submission[]> {
     return this.submissionRepo.find({
@@ -231,15 +236,15 @@ export class ChecklistService {
         ]),
       },
       relations: { documents: true },
-      order: { uldcApprovedAt: 'DESC' },
+      order: { presidentReferencedAt: 'DESC' },
     });
   }
 
   /**
    * President view (Foreign Travel only): requests awaiting the
-   * President's reference slip (IMP, right after ULDC Committee
-   * deliberation), endorsement (non-IMP), or approval (IMP), plus
-   * anything further downstream for tracking.
+   * President's reference slip (both IMP and non-IMP, right after ULDC
+   * Committee deliberation) or approval (IMP only, after Admin Council
+   * endorses), plus anything further downstream for tracking.
    */
   async listPresidentSubmissions(): Promise<Submission[]> {
     return this.submissionRepo.find({
@@ -502,8 +507,8 @@ export class ChecklistService {
    *   - uldc_subcommittee: while SUBMITTED (active screening) or
    *     RETURNED_FOR_CORRECTION (re-checking a fresh re-upload before the
    *     employee resubmits)
-   *   - uldc_committee: while ULDC_DELIBERATION (full-body deliberation,
-   *     Foreign Travel + IMP only)
+   *   - uldc_committee: while ULDC_DELIBERATION (full-body deliberation —
+   *     Foreign Travel only, both IMP and non-IMP)
    */
   async reviewDocument(
     submissionId: string,
@@ -590,8 +595,10 @@ export class ChecklistService {
    * every required document has been individually approved. Where this
    * forwards to depends on the request:
    *   - anything except Foreign Travel        -> FOR_BOARD_DELIBERATION
-   *   - Foreign Travel + IMP                  -> ULDC_DELIBERATION
-   *   - Foreign Travel + not IMP              -> FOR_ADMIN_COUNCIL
+   *   - Foreign Travel (IMP or not)           -> ULDC_DELIBERATION
+   * Foreign Travel always goes to the full ULDC Committee first now —
+   * IMP and non-IMP only diverge later, after Admin Council endorses
+   * (see adminCouncilEndorse).
    */
   async approveSubmission(submissionId: string): Promise<Submission> {
     const submission = await this.getSubmission(submissionId);
@@ -609,11 +616,9 @@ export class ChecklistService {
     }
 
     const isForeignTravel = submission.requestType === RequestType.FOREIGN_TRAVEL;
-    const nextStatus = !isForeignTravel
-      ? SubmissionStatus.FOR_BOARD_DELIBERATION
-      : submission.isImp
-        ? SubmissionStatus.ULDC_DELIBERATION
-        : SubmissionStatus.FOR_ADMIN_COUNCIL;
+    const nextStatus = isForeignTravel
+      ? SubmissionStatus.ULDC_DELIBERATION
+      : SubmissionStatus.FOR_BOARD_DELIBERATION;
 
     const uldcApprovedAt = new Date();
     await this.submissionRepo.update(submissionId, { status: nextStatus, uldcApprovedAt });
@@ -621,9 +626,9 @@ export class ChecklistService {
   }
 
   /**
-   * Foreign Travel + IMP only. ULDC concludes full-body deliberation
-   * (the stage after initial screening) and forwards to the President for
-   * a reference slip (not Admin Council directly — see
+   * Foreign Travel only (both IMP and non-IMP). ULDC concludes full-body
+   * deliberation (the stage after initial screening) and forwards to the
+   * President for a reference slip (not Admin Council directly — see
    * submitPresidentReference). Only allowed once every required document
    * is (still) individually approved — same gating as Sub-Committee's
    * approveSubmission.
@@ -652,9 +657,10 @@ export class ChecklistService {
   }
 
   /**
-   * Foreign Travel + IMP only. President uploads the signed reference
-   * slip, referring the request onward to the Admin Council. Sits between
-   * ULDC Committee's concludeUldcDeliberation and adminCouncilEndorse.
+   * Foreign Travel only (both IMP and non-IMP). President uploads the
+   * signed reference slip, referring the request onward to the Admin
+   * Council. Sits between ULDC Committee's concludeUldcDeliberation and
+   * adminCouncilEndorse.
    */
   async submitPresidentReference(
     submissionId: string,
@@ -693,10 +699,10 @@ export class ChecklistService {
 
   /**
    * Foreign Travel only. Admin Council endorses the request — requires
-   * attaching a certification file in the same action. Where this
-   * forwards to depends on IMP:
-   *   - IMP     -> FOR_PRESIDENT_APPROVAL
-   *   - not IMP -> FOR_PRESIDENT_ENDORSEMENT
+   * attaching a certification file in the same action. This is where the
+   * IMP and non-IMP paths diverge. Where this forwards to depends on IMP:
+   *   - IMP     -> FOR_PRESIDENT_APPROVAL (President approves, then Board confirms)
+   *   - not IMP -> FOR_BOARD_APPROVAL (straight to the Board for final approval)
    */
   async adminCouncilEndorse(
     submissionId: string,
@@ -712,7 +718,7 @@ export class ChecklistService {
 
     const nextStatus = submission.isImp
       ? SubmissionStatus.FOR_PRESIDENT_APPROVAL
-      : SubmissionStatus.FOR_PRESIDENT_ENDORSEMENT;
+      : SubmissionStatus.FOR_BOARD_APPROVAL;
 
     const adminCouncilEndorsedAt = new Date();
     await this.submissionRepo.update(submissionId, {
@@ -778,8 +784,11 @@ export class ChecklistService {
   }
 
   /**
-   * Foreign Travel + non-IMP only. President endorses (not final for this
-   * path) and forwards to the Board for final approval.
+   * Legacy Foreign Travel + non-IMP action — no longer reachable. Non-IMP
+   * now goes straight from Admin Council endorsement to FOR_BOARD_APPROVAL
+   * (see adminCouncilEndorse), skipping a separate President endorsement
+   * step entirely. Kept only so a pre-existing row still stuck in
+   * FOR_PRESIDENT_ENDORSEMENT can be moved forward.
    */
   async presidentEndorse(submissionId: string): Promise<Submission> {
     const submission = await this.getSubmission(submissionId);
@@ -798,7 +807,7 @@ export class ChecklistService {
   /**
    * Board's final approval action. Valid from either:
    *   - FOR_BOARD_DELIBERATION (standard flow — every non-Foreign-Travel type)
-   *   - FOR_BOARD_APPROVAL (Foreign Travel + non-IMP, after President endorses)
+   *   - FOR_BOARD_APPROVAL (Foreign Travel + non-IMP, after Admin Council endorses)
    * Locks the submission permanently — the last stage in both of those paths.
    */
   async boardApprove(submissionId: string): Promise<Submission> {

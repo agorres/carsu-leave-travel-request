@@ -166,7 +166,7 @@ onMounted(async () => {
             <span class="muted">Endorsed by Admin Council {{ formatDateTime(progress.submission.adminCouncilEndorsedAt) }}</span>
             <span v-if="isForBoardConfirmation || isBoardConfirmed || isPresidentApproved" class="muted">Approved by President {{ formatDateTime(progress.submission.presidentApprovedAt) }}</span>
             <span v-if="isBoardConfirmed" class="muted">Confirmed by Board {{ formatDateTime(progress.submission.boardConfirmedAt) }}</span>
-            <span v-if="isForBoardApproval || isBoardApproved" class="muted">Endorsed by President {{ formatDateTime(progress.submission.presidentEndorsedAt) }}</span>
+            <span v-if="(isForBoardApproval || isBoardApproved) && progress.submission.presidentEndorsedAt" class="muted">Endorsed by President {{ formatDateTime(progress.submission.presidentEndorsedAt) }}</span>
             <span v-if="isBoardApproved" class="muted">Approved by Board {{ formatDateTime(progress.submission.boardApprovedAt) }}</span>
           </div>
           <div v-if="progress.submission.referenceSlipOriginalFileName || progress.submission.certificationOriginalFileName" class="status-row">

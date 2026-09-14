@@ -23,20 +23,26 @@ export enum SubmissionStatus {
   // --- Standard flow (every request type EXCEPT Foreign Travel) ---
   FOR_BOARD_DELIBERATION = 'for_board_deliberation', // ULDC approved every document — forwarded to the Board
 
-  // --- Foreign Travel + IMP flow only ---
+  // --- Foreign Travel flow (both IMP and non-IMP) — shared stages ---
   ULDC_DELIBERATION = 'uldc_deliberation', // ULDC screening passed — now under full ULDC body deliberation
   FOR_PRESIDENT_REFERENCE = 'for_president_reference', // ULDC Committee concluded deliberation — awaiting the President's reference slip before Admin Council
+  FOR_ADMIN_COUNCIL = 'for_admin_council', // President referred — awaiting Admin Council endorsement
+
+  // --- Foreign Travel + IMP only (Admin Council endorsement forwards here) ---
   FOR_PRESIDENT_APPROVAL = 'for_president_approval', // Admin Council endorsed — forwarded to the President for approval
   PRESIDENT_APPROVED = 'president_approved', // President approved — forwarded to the Board to confirm (not final anymore)
   FOR_BOARD_CONFIRMATION = 'for_board_confirmation', // President approved — forwarded to the Board to confirm
   BOARD_CONFIRMED = 'board_confirmed', // Board confirmed — final state (Foreign Travel + IMP path)
 
-  // --- Foreign Travel + non-IMP flow only ---
-  FOR_PRESIDENT_ENDORSEMENT = 'for_president_endorsement', // Admin Council endorsed — forwarded to the President
-  FOR_BOARD_APPROVAL = 'for_board_approval', // President endorsed — forwarded to the Board for final approval
+  // --- Legacy Foreign Travel + non-IMP status, no longer produced by any
+  // action (kept so any pre-existing row using it still renders/behaves
+  // sensibly). Non-IMP now goes straight from Admin Council endorsement to
+  // FOR_BOARD_APPROVAL below, without a separate President endorsement step.
+  FOR_PRESIDENT_ENDORSEMENT = 'for_president_endorsement',
 
-  // --- Shared by: standard flow (final) AND Foreign Travel + non-IMP (final) ---
-  FOR_ADMIN_COUNCIL = 'for_admin_council', // Foreign Travel only (either IMP or not) — awaiting Admin Council
+  // --- Final approval: standard flow (from FOR_BOARD_DELIBERATION) AND
+  // Foreign Travel + non-IMP (from FOR_ADMIN_COUNCIL, once Admin Council endorses) ---
+  FOR_BOARD_APPROVAL = 'for_board_approval', // Awaiting the Board's final approval
   BOARD_APPROVED = 'board_approved', // Board approved — final state
 }
 
@@ -109,8 +115,12 @@ export class Submission {
   isAbroad: boolean;
 
   // Foreign Travel requests only — set by the employee on the form.
-  // Determines which multi-stage approval path the request follows
-  // (see SubmissionStatus). Ignored for every other request type.
+  // Both IMP and non-IMP now follow the same path through Admin Council
+  // endorsement (ULDC Sub-Committee -> ULDC Committee -> President
+  // reference -> Admin Council); isImp only decides what happens next —
+  // IMP continues to President approval + Board confirmation, non-IMP
+  // goes straight to the Board for final approval (see SubmissionStatus).
+  // Ignored for every other request type.
   @Column({ default: false })
   isImp: boolean;
 

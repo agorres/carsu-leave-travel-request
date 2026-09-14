@@ -78,8 +78,9 @@ export class ChecklistController {
     return this.checklistService.listUldcSubcommitteeSubmissions();
   }
 
-  // ULDC Committee view (Foreign Travel + IMP only) — requests under full-
-  // body deliberation, plus anything already forwarded further downstream.
+  // ULDC Committee view (Foreign Travel, both IMP and non-IMP) — requests
+  // under full-body deliberation, plus anything already forwarded further
+  // downstream.
   @UseGuards(UldcCommitteeGuard)
   @Get('uldc-committee/submitted')
   listUldcCommitteeSubmissions() {
@@ -101,8 +102,8 @@ export class ChecklistController {
     return this.checklistService.listAdminCouncilSubmissions();
   }
 
-  // President view (Foreign Travel only) — requests awaiting endorsement
-  // (non-IMP) or final approval (IMP).
+  // President view (Foreign Travel only) — requests awaiting a reference
+  // slip (both IMP and non-IMP) or final approval (IMP only).
   @UseGuards(PresidentGuard)
   @Get('president/submitted')
   listPresidentSubmissions() {
@@ -260,8 +261,8 @@ export class ChecklistController {
 
   // --- ULDC Committee action ---
 
-  // Foreign Travel + IMP only — ULDC Committee concludes full-body
-  // deliberation and forwards to Admin Council.
+  // Foreign Travel only (both IMP and non-IMP) — ULDC Committee concludes
+  // full-body deliberation and forwards to the President for a reference slip.
   @UseGuards(UldcCommitteeGuard)
   @Post('submissions/:id/conclude-uldc-deliberation')
   concludeUldcDeliberation(@Param('id') id: string) {
@@ -298,9 +299,10 @@ export class ChecklistController {
 
   // --- President actions (Foreign Travel only) ---
 
-  // Foreign Travel + IMP only — President uploads the signed reference
-  // slip, referring the request onward to the Admin Council. Sits between
-  // the ULDC Committee concluding deliberation and Admin Council endorsement.
+  // Foreign Travel only (both IMP and non-IMP) — President uploads the
+  // signed reference slip, referring the request onward to the Admin
+  // Council. Sits between the ULDC Committee concluding deliberation and
+  // Admin Council endorsement.
   @UseGuards(PresidentGuard)
   @Post('submissions/:id/president-reference')
   @UseInterceptors(
@@ -332,7 +334,10 @@ export class ChecklistController {
     return this.checklistService.presidentApprove(id);
   }
 
-  // Foreign Travel + non-IMP only — endorsement, forwards to the Board.
+  // Legacy Foreign Travel + non-IMP endpoint — no longer reachable from the
+  // UI. Non-IMP now goes straight from Admin Council endorsement to the
+  // Board for final approval (see admin-council-endorse below). Kept only
+  // to move forward any pre-existing row still stuck awaiting endorsement.
   @UseGuards(PresidentGuard)
   @Post('submissions/:id/president-endorse')
   presidentEndorse(@Param('id') id: string) {
@@ -349,7 +354,7 @@ export class ChecklistController {
   }
 
   // Final approval — valid from the standard flow (every non-Foreign-Travel
-  // type) or Foreign Travel + non-IMP (after the President endorses).
+  // type) or Foreign Travel + non-IMP (after Admin Council endorses).
   @UseGuards(BoardGuard)
   @Post('submissions/:id/board-approve')
   boardApprove(@Param('id') id: string) {

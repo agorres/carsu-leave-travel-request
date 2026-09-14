@@ -579,8 +579,7 @@ const groupedItems = computed(() => {
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="isForAdminCouncil" class="complete-banner approved-banner">
-          <p v-if="progress.submission.isImp">✓ Referred by the President{{ progress.submission.presidentReferencedAt ? ' on ' + formatDateTime(progress.submission.presidentReferencedAt) : '' }} and forwarded to the Admin Council for endorsement.</p>
-          <p v-else>✓ Approved by the ULDC Sub-Committee and forwarded to the Admin Council for endorsement.</p>
+          <p>✓ Referred by the President{{ progress.submission.presidentReferencedAt ? ' on ' + formatDateTime(progress.submission.presidentReferencedAt) : '' }} and forwarded to the Admin Council for endorsement.</p>
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
         <div v-else-if="isForPresidentReference" class="complete-banner approved-banner">

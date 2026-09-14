@@ -30,19 +30,20 @@ export type SubmissionStatus =
   | 'returned_for_correction'
   // standard flow (every request type except Foreign Travel)
   | 'for_board_deliberation'
-  // Foreign Travel + IMP only
+  // Foreign Travel flow (both IMP and non-IMP) — shared stages
   | 'uldc_deliberation'
   | 'for_president_reference'
+  | 'for_admin_council'
+  // Foreign Travel + IMP only (after Admin Council endorses)
   | 'for_president_approval'
   | 'president_approved'
   | 'for_board_confirmation'
   | 'board_confirmed'
-  // Foreign Travel + non-IMP only
+  // legacy Foreign Travel + non-IMP status, no longer produced
   | 'for_president_endorsement'
+  // final approval: standard flow, AND Foreign Travel + non-IMP
+  // (straight from Admin Council endorsement)
   | 'for_board_approval'
-  // Foreign Travel only (either IMP or not)
-  | 'for_admin_council'
-  // final for standard flow AND Foreign Travel + non-IMP
   | 'board_approved';
 
 export type TravelPurpose = 'official' | 'personal';
@@ -188,8 +189,9 @@ export function useChecklist() {
     });
   }
 
-  // ULDC Committee (Foreign Travel + IMP only) — requests under full-body
-  // deliberation, plus anything already forwarded further downstream.
+  // ULDC Committee (Foreign Travel, both IMP and non-IMP) — requests
+  // under full-body deliberation, plus anything already forwarded
+  // further downstream.
   async function listUldcCommitteeSubmissions(): Promise<Submission[]> {
     return $fetch(`${base}/checklist/uldc-committee/submitted`, {
       headers: authHeaders(),
@@ -213,7 +215,8 @@ export function useChecklist() {
     });
   }
 
-  // President (Foreign Travel only) — requests awaiting endorsement or final approval.
+  // President (Foreign Travel only) — requests awaiting a reference slip
+  // (both IMP and non-IMP) or final approval (IMP only).
   async function listPresidentSubmissions(): Promise<Submission[]> {
     return $fetch(`${base}/checklist/president/submitted`, {
       headers: authHeaders(),
@@ -271,7 +274,8 @@ export function useChecklist() {
   }
 
   // Board — final approval action, valid from either the standard flow
-  // (for_board_deliberation) or Foreign Travel + non-IMP (for_board_approval).
+  // (for_board_deliberation) or Foreign Travel + non-IMP (for_board_approval,
+  // reached straight from Admin Council endorsement).
   async function boardApproveSubmission(submissionId: string): Promise<Submission> {
     return $fetch(`${base}/checklist/submissions/${submissionId}/board-approve`, {
       method: 'POST',
@@ -279,8 +283,8 @@ export function useChecklist() {
     });
   }
 
-  // Foreign Travel + IMP only — ULDC Committee concludes full-body
-  // deliberation, forwards to Admin Council.
+  // Foreign Travel only (both IMP and non-IMP) — ULDC Committee concludes
+  // full-body deliberation, forwards to the President for a reference slip.
   async function concludeUldcDeliberation(submissionId: string): Promise<Submission> {
     return $fetch(`${base}/checklist/submissions/${submissionId}/conclude-uldc-deliberation`, {
       method: 'POST',
@@ -288,9 +292,9 @@ export function useChecklist() {
     });
   }
 
-    // Foreign Travel only — Admin Council endorses (forwards to Board
-  // confirmation if IMP, or President endorsement if not). Requires a
-  // certification file attached in the same action.
+    // Foreign Travel only — Admin Council endorses (forwards to the
+  // President for approval if IMP, or straight to the Board for final
+  // approval if not). Requires a certification file attached in the same action.
   async function adminCouncilEndorse(submissionId: string, file: File): Promise<Submission> {
     const formData = new FormData();
     formData.append('file', file);

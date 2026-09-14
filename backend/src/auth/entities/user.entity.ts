@@ -6,8 +6,8 @@ export enum UserRole {
   // back for correction, forward the request onward once every document
   // is approved).
   ULDC_SUBCOMMITTEE = 'uldc_subcommittee',
-  // Full-body deliberation stage. Today this only exists on the Foreign
-  // Travel + IMP path (see SubmissionStatus.ULDC_DELIBERATION) — every
+  // Full-body deliberation stage. This exists on every Foreign Travel
+  // request, IMP or not (see SubmissionStatus.ULDC_DELIBERATION) — every
   // other request type skips straight from Sub-Committee screening to
   // the Board.
   ULDC_COMMITTEE = 'uldc_committee',

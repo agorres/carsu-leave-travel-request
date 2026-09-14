@@ -77,7 +77,7 @@ onMounted(async () => {
       </div>
 
       <div v-else-if="submissions.length === 0" class="admin-card">
-        <p class="muted">No requests have been forwarded by ULDC yet.</p>
+        <p class="muted">No requests have been referred by the President yet.</p>
       </div>
 
       <div v-else class="admin-card">
@@ -88,7 +88,7 @@ onMounted(async () => {
               <th>Employee</th>
               <th>Office / Unit</th>
               <th>Request Type</th>
-              <th>ULDC Approved</th>
+              <th>President Referred</th>
               <th>Status</th>
               <th></th>
             </tr>
@@ -109,7 +109,7 @@ onMounted(async () => {
                 <span class="imp-tag">{{ s.isImp ? 'IMP' : 'non-IMP' }}</span>
                 <span v-if="s.travelPurpose" class="purpose-tag" :class="`purpose-${s.travelPurpose}`">{{ s.travelPurpose === 'official' ? 'Official' : 'Personal' }}</span>
               </td>
-              <td>{{ formatDate(s.uldcApprovedAt) }}</td>
+              <td>{{ formatDate(s.presidentReferencedAt) }}</td>
               <td>
                 <span class="status-pill" :class="`pill-${s.status}`">{{ statusLabel(s.status) }}</span>
               </td>

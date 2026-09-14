@@ -30,6 +30,8 @@ const STATUS_LABELS: Record<string, string> = {
   president_approved: 'Approved by President',
   for_board_confirmation: 'For Board Confirmation',
   board_confirmed: 'Confirmed by Board',
+  for_board_approval: 'For Board Approval',
+  board_approved: 'Approved by Board',
 }
 
 function typeLabel(type: string) {
@@ -76,7 +78,7 @@ onMounted(async () => {
       </div>
 
       <div v-else-if="submissions.length === 0" class="admin-card">
-        <p class="muted">No requests are currently under ULDC Committee deliberation. This only applies to Foreign Travel (IMP) requests that have passed Sub-Committee screening.</p>
+        <p class="muted">No requests are currently under ULDC Committee deliberation. This applies to Foreign Travel requests (IMP or not) that have passed Sub-Committee screening.</p>
       </div>
 
       <div v-else class="admin-card">
@@ -257,9 +259,14 @@ onMounted(async () => {
   color: #a05a1a;
 }
 .pill-president_approved,
-.pill-board_confirmed {
+.pill-board_confirmed,
+.pill-board_approved {
   background: #dff5df;
   color: var(--emerald);
+}
+.pill-for_board_approval {
+  background: #eaf3ff;
+  color: #1a5fb4;
 }
 .imp-tag {
   display: inline-block;
