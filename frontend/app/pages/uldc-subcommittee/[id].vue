@@ -455,7 +455,7 @@ onMounted(async () => {
   background: rgba(255, 255, 255, 0.12);
 }
 .admin-body {
-  max-width: 900px;
+  max-width: 1400px;
   margin: 28px auto;
   padding: 0 20px;
   display: flex;
@@ -476,7 +476,7 @@ onMounted(async () => {
 }
 .info-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
 }
 .info-field {
