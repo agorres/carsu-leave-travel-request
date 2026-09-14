@@ -162,7 +162,7 @@ async function beginChecklist() {
     const submission = await createSubmission({
       requestType: selectedType.value,
       isAbroad: isAbroad.value,
-      isImp: selectedType.value === 'foreign_travel' ? isImp.value : false,
+      isImp: isImp.value,
       travelPurpose: TRAVEL_PURPOSE_APPLICABLE.includes(selectedType.value) && travelPurpose.value
         ? travelPurpose.value
         : undefined,
@@ -427,9 +427,9 @@ const groupedItems = computed(() => {
             This is for travel/study abroad (adds CHED IAS Assessment)
           </label>
 
-          <label v-if="selectedType === 'foreign_travel'" class="abroad-toggle">
+          <label v-if="selectedType" class="abroad-toggle">
             <input type="checkbox" v-model="isImp" :disabled="!!submissionId" />
-            This travel is IMP
+            This request is IMP
           </label>
 
           <div v-if="TRAVEL_PURPOSE_APPLICABLE.includes(selectedType)" class="field">

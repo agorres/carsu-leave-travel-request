@@ -271,7 +271,7 @@ onMounted(async () => {
 
         <section class="admin-card">
           <div v-if="isForAdminCouncil" class="screening-actions">
-            <p class="muted">The President has referred this Foreign Travel request. Review the documents above, attach the certification, then endorse it to continue the approval flow.</p>
+            <p class="muted">The President has referred this request. Review the documents above, attach the certification, then endorse it to continue the approval flow.</p>
             <div class="action-buttons">
               <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" @change="onCertificationFileChange" />
               <button class="action-btn primary" :disabled="endorsing" @click="onEndorse">

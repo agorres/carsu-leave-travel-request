@@ -78,9 +78,9 @@ export class ChecklistController {
     return this.checklistService.listUldcSubcommitteeSubmissions();
   }
 
-  // ULDC Committee view (Foreign Travel, both IMP and non-IMP) — requests
-  // under full-body deliberation, plus anything already forwarded further
-  // downstream.
+  // ULDC Committee view (every request type, both IMP and non-IMP) —
+  // requests under full-body deliberation, plus anything already forwarded
+  // further downstream.
   @UseGuards(UldcCommitteeGuard)
   @Get('uldc-committee/submitted')
   listUldcCommitteeSubmissions() {
@@ -94,7 +94,7 @@ export class ChecklistController {
     return this.checklistService.listBoardSubmissions();
   }
 
-  // Admin Council view (Foreign Travel only) — requests ULDC has forwarded
+  // Admin Council view (every request type) — requests ULDC has forwarded
   // for endorsement.
   @UseGuards(AdminCouncilGuard)
   @Get('admin-council/submitted')
@@ -102,7 +102,7 @@ export class ChecklistController {
     return this.checklistService.listAdminCouncilSubmissions();
   }
 
-  // President view (Foreign Travel only) — requests awaiting a reference
+  // President view (every request type) — requests awaiting a reference
   // slip (both IMP and non-IMP) or final approval (IMP only).
   @UseGuards(PresidentGuard)
   @Get('president/submitted')
@@ -261,7 +261,7 @@ export class ChecklistController {
 
   // --- ULDC Committee action ---
 
-  // Foreign Travel only (both IMP and non-IMP) — ULDC Committee concludes
+  // Every request type (both IMP and non-IMP) — ULDC Committee concludes
   // full-body deliberation and forwards to the President for a reference slip.
   @UseGuards(UldcCommitteeGuard)
   @Post('submissions/:id/conclude-uldc-deliberation')
@@ -270,7 +270,7 @@ export class ChecklistController {
   }
 
 
-    // --- Admin Council action (Foreign Travel only) ---
+    // --- Admin Council action (every request type) ---
 
   // Requires a certification file uploaded in the same action.
   @UseGuards(AdminCouncilGuard)
@@ -297,9 +297,9 @@ export class ChecklistController {
     return this.checklistService.adminCouncilEndorse(id, file);
   }
 
-  // --- President actions (Foreign Travel only) ---
+  // --- President actions (every request type) ---
 
-  // Foreign Travel only (both IMP and non-IMP) — President uploads the
+  // Every request type (both IMP and non-IMP) — President uploads the
   // signed reference slip, referring the request onward to the Admin
   // Council. Sits between the ULDC Committee concluding deliberation and
   // Admin Council endorsement.
@@ -327,14 +327,14 @@ export class ChecklistController {
     return this.checklistService.submitPresidentReference(id, file);
   }
 
-  // Foreign Travel + IMP only — final approval.
+  // IMP only — final approval.
   @UseGuards(PresidentGuard)
   @Post('submissions/:id/president-approve')
   presidentApprove(@Param('id') id: string) {
     return this.checklistService.presidentApprove(id);
   }
 
-  // Legacy Foreign Travel + non-IMP endpoint — no longer reachable from the
+  // Legacy non-IMP endpoint — no longer reachable from the
   // UI. Non-IMP now goes straight from Admin Council endorsement to the
   // Board for final approval (see admin-council-endorse below). Kept only
   // to move forward any pre-existing row still stuck awaiting endorsement.
@@ -346,15 +346,16 @@ export class ChecklistController {
 
   // --- Board actions ---
 
-  // Foreign Travel + IMP only — confirmation, forwards to the President.
+  // IMP only — confirmation, forwards to the President.
   @UseGuards(BoardGuard)
   @Post('submissions/:id/board-confirm')
   boardConfirm(@Param('id') id: string) {
     return this.checklistService.boardConfirm(id);
   }
 
-  // Final approval — valid from the standard flow (every non-Foreign-Travel
-  // type) or Foreign Travel + non-IMP (after Admin Council endorses).
+  // Final approval — valid from the legacy standard-flow status
+  // (FOR_BOARD_DELIBERATION, pre-existing rows only) or non-IMP
+  // (after Admin Council endorses).
   @UseGuards(BoardGuard)
   @Post('submissions/:id/board-approve')
   boardApprove(@Param('id') id: string) {

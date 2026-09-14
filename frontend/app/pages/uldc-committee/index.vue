@@ -78,7 +78,7 @@ onMounted(async () => {
       </div>
 
       <div v-else-if="submissions.length === 0" class="admin-card">
-        <p class="muted">No requests are currently under ULDC Committee deliberation. This applies to Foreign Travel requests (IMP or not) that have passed Sub-Committee screening.</p>
+        <p class="muted">No requests are currently under ULDC Committee deliberation. This applies to any request (IMP or not) that has passed Sub-Committee screening.</p>
       </div>
 
       <div v-else class="admin-card">

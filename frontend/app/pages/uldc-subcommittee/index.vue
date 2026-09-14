@@ -110,7 +110,7 @@ onMounted(async () => {
               </td>
               <td>
                 {{ typeLabel(s.requestType) }}
-                <span v-if="s.requestType === 'foreign_travel'" class="imp-tag">{{ s.isImp ? 'IMP' : 'non-IMP' }}</span>
+                <span class="imp-tag">{{ s.isImp ? 'IMP' : 'non-IMP' }}</span>
                 <span v-if="s.travelPurpose" class="purpose-tag" :class="`purpose-${s.travelPurpose}`">{{ s.travelPurpose === 'official' ? 'Official' : 'Personal' }}</span>
               </td>
               <td>{{ formatDate(s.submittedAt) }}</td>

@@ -289,11 +289,11 @@ onMounted(async () => {
           </div>
 
           <div v-else-if="isForPresidentApproval || isPresidentApproved" class="screening-actions">
-            <p class="muted">The Admin Council has endorsed this Foreign Travel (IMP) request. It is currently with the President for approval and hasn't reached the Board yet — no action needed from the Board at this time.</p>
+            <p class="muted">The Admin Council has endorsed this (IMP) request. It is currently with the President for approval and hasn't reached the Board yet — no action needed from the Board at this time.</p>
           </div>
 
           <div v-else-if="isForBoardConfirmation" class="screening-actions">
-            <p class="muted">The President has approved this Foreign Travel (IMP) request. Review the documents above, then record the Board's final confirmation.</p>
+            <p class="muted">The President has approved this (IMP) request. Review the documents above, then record the Board's final confirmation.</p>
             <div class="action-buttons">
               <button class="action-btn primary" :disabled="confirming" @click="onBoardConfirm">
                 {{ confirming ? 'Confirming…' : 'Confirm — Final Decision' }}

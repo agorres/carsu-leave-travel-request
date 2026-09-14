@@ -313,7 +313,7 @@ onMounted(async () => {
 
         <section class="admin-card">
           <div v-if="isForPresidentReference" class="screening-actions">
-            <p class="muted">The ULDC Committee has concluded deliberation on this Foreign Travel (IMP) request. Upload the signed reference slip to refer it onward to the Admin Council.</p>
+            <p class="muted">The ULDC Committee has concluded deliberation on this request. Upload the signed reference slip to refer it onward to the Admin Council.</p>
             <div class="action-buttons">
               <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" @change="onReferenceFileChange" />
               <button class="action-btn primary" :disabled="referring" @click="onSubmitReference">
@@ -330,7 +330,7 @@ onMounted(async () => {
           </div>
 
           <div v-else-if="isForPresidentApproval" class="screening-actions">
-            <p class="muted">The Admin Council has endorsed this Foreign Travel (IMP) request. Review the documents above, then record approval — it will forward to the Board for final confirmation.</p>
+            <p class="muted">The Admin Council has endorsed this (IMP) request. Review the documents above, then record approval — it will forward to the Board for final confirmation.</p>
             <div class="action-buttons">
               <button class="action-btn primary" :disabled="approving" @click="onApprove">
                 {{ approving ? 'Approving…' : 'Approve — Forward to Board' }}
@@ -340,7 +340,7 @@ onMounted(async () => {
           </div>
 
           <div v-else-if="isForPresidentEndorsement" class="screening-actions">
-            <p class="muted">The Admin Council has endorsed this Foreign Travel (non-IMP) request. Review the documents above, then endorse it to forward to the Board for final approval.</p>
+            <p class="muted">The Admin Council has endorsed this (non-IMP) request. Review the documents above, then endorse it to forward to the Board for final approval.</p>
             <div class="action-buttons">
               <button class="action-btn primary" :disabled="endorsing" @click="onEndorse">
                 {{ endorsing ? 'Endorsing…' : 'Endorse — Forward to Board' }}

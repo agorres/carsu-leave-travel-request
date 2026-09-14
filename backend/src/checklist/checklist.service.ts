@@ -166,11 +166,11 @@ export class ChecklistService {
   }
 
   /**
-   * ULDC Committee view (Foreign Travel, both IMP and non-IMP): requests
-   * currently under full-body deliberation, plus anything the Committee
-   * has already forwarded further downstream, for tracking — including
-   * both the IMP path (through Board confirmation) and the non-IMP path
-   * (straight to Board approval after Admin Council endorses).
+   * ULDC Committee view (every request type, both IMP and non-IMP):
+   * requests currently under full-body deliberation, plus anything the
+   * Committee has already forwarded further downstream, for tracking —
+   * including both the IMP path (through Board confirmation) and the
+   * non-IMP path (straight to Board approval after Admin Council endorses).
    */
   async listUldcCommitteeSubmissions(): Promise<Submission[]> {
     return this.submissionRepo.find({
@@ -193,10 +193,10 @@ export class ChecklistService {
   }
 
   /**
-   * Board view: requests currently awaiting Board action (standard-flow
-   * final approval, Foreign Travel+non-IMP final approval, or Foreign
-   * Travel+IMP confirmation), plus anything the Board has already acted
-   * on further downstream, for tracking.
+   * Board view: requests currently awaiting Board action (legacy
+   * standard-flow final approval, non-IMP final approval, or IMP
+   * confirmation), plus anything the Board has already acted on further
+   * downstream, for tracking.
    */
   async listBoardSubmissions(): Promise<Submission[]> {
     return this.submissionRepo.find({
@@ -217,7 +217,7 @@ export class ChecklistService {
   }
 
   /**
-   * Admin Council view (Foreign Travel only): requests the President has
+   * Admin Council view (every request type): requests the President has
    * referred for endorsement, plus anything further downstream for
    * tracking.
    */
@@ -241,7 +241,7 @@ export class ChecklistService {
   }
 
   /**
-   * President view (Foreign Travel only): requests awaiting the
+   * President view (every request type): requests awaiting the
    * President's reference slip (both IMP and non-IMP, right after ULDC
    * Committee deliberation) or approval (IMP only, after Admin Council
    * endorses), plus anything further downstream for tracking.
@@ -508,7 +508,7 @@ export class ChecklistService {
    *     RETURNED_FOR_CORRECTION (re-checking a fresh re-upload before the
    *     employee resubmits)
    *   - uldc_committee: while ULDC_DELIBERATION (full-body deliberation —
-   *     Foreign Travel only, both IMP and non-IMP)
+   *     every request type, both IMP and non-IMP)
    */
   async reviewDocument(
     submissionId: string,
@@ -592,13 +592,14 @@ export class ChecklistService {
 
   /**
    * ULDC Sub-Committee's initial screening approval. Only allowed once
-   * every required document has been individually approved. Where this
-   * forwards to depends on the request:
-   *   - anything except Foreign Travel        -> FOR_BOARD_DELIBERATION
-   *   - Foreign Travel (IMP or not)           -> ULDC_DELIBERATION
-   * Foreign Travel always goes to the full ULDC Committee first now —
-   * IMP and non-IMP only diverge later, after Admin Council endorses
-   * (see adminCouncilEndorse).
+   * every required document has been individually approved. Every request
+   * type now goes through the same full pipeline as Foreign Travel used
+   * to be alone: ULDC Committee deliberation -> President reference slip
+   * -> Admin Council endorsement -> (IMP: President approval -> Board
+   * confirmation) or (non-IMP: straight to Board for final approval).
+   * FOR_BOARD_DELIBERATION (the old short-circuit for non-Foreign-Travel
+   * types) is legacy-only now — boardApprove still accepts it so any
+   * pre-existing row stuck there can still be finalized.
    */
   async approveSubmission(submissionId: string): Promise<Submission> {
     const submission = await this.getSubmission(submissionId);
@@ -615,10 +616,7 @@ export class ChecklistService {
       throw new BadRequestException('Every document must be individually approved first');
     }
 
-    const isForeignTravel = submission.requestType === RequestType.FOREIGN_TRAVEL;
-    const nextStatus = isForeignTravel
-      ? SubmissionStatus.ULDC_DELIBERATION
-      : SubmissionStatus.FOR_BOARD_DELIBERATION;
+    const nextStatus = SubmissionStatus.ULDC_DELIBERATION;
 
     const uldcApprovedAt = new Date();
     await this.submissionRepo.update(submissionId, { status: nextStatus, uldcApprovedAt });
@@ -626,7 +624,7 @@ export class ChecklistService {
   }
 
   /**
-   * Foreign Travel only (both IMP and non-IMP). ULDC concludes full-body
+   * Every request type (both IMP and non-IMP). ULDC concludes full-body
    * deliberation (the stage after initial screening) and forwards to the
    * President for a reference slip (not Admin Council directly — see
    * submitPresidentReference). Only allowed once every required document
@@ -657,7 +655,7 @@ export class ChecklistService {
   }
 
   /**
-   * Foreign Travel only (both IMP and non-IMP). President uploads the
+   * Every request type (both IMP and non-IMP). President uploads the
    * signed reference slip, referring the request onward to the Admin
    * Council. Sits between ULDC Committee's concludeUldcDeliberation and
    * adminCouncilEndorse.

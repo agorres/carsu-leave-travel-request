@@ -73,7 +73,7 @@ onMounted(async () => {
 <template>
   <div class="admin-shell">
     <header class="admin-topbar">
-      <div class="admin-title">President — Foreign Travel Requests</div>
+      <div class="admin-title">President — Requests</div>
       <div class="admin-topbar-right">
         <span v-if="user" class="session-email">{{ user.email }}</span>
         <button class="logout-btn" @click="logout(); router.push('/login')">Log out</button>
