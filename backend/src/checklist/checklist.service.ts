@@ -536,8 +536,10 @@ export class ChecklistService {
     const doc = await this.documentRepo.findOne({ where: { submissionId, itemCode } });
     if (!doc) throw new NotFoundException('Document not found for this item');
 
-    if (doc.isNotApplicable && dto.status !== DocumentReviewStatus.ACKNOWLEDGED) {
-      throw new BadRequestException('An item marked Not Applicable can only be acknowledged');
+    if (doc.isNotApplicable && dto.status === DocumentReviewStatus.APPROVED) {
+      throw new BadRequestException(
+        'An item marked Not Applicable cannot be approved — acknowledge it, or reject it if it should not have been marked Not Applicable',
+      );
     }
     if (!doc.isNotApplicable && dto.status === DocumentReviewStatus.ACKNOWLEDGED) {
       throw new BadRequestException('Only an item marked Not Applicable can be acknowledged');
