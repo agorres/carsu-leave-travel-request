@@ -11,7 +11,10 @@ export enum DocumentReviewStatus {
   PENDING = 'pending', // uploaded, not yet screened by admin
   APPROVED = 'approved',
   REJECTED = 'rejected',
-  ACKNOWLEDGED = 'acknowledged', // N/A items only — reviewer has acknowledged, no approve/reject applies
+  ACKNOWLEDGED = 'acknowledged', // N/A items only — reviewer accepts the Not Applicable claim.
+  // (N/A items can also be REJECTED, if the reviewer disagrees that the
+  // item doesn't apply — they just can never be APPROVED, since there's
+  // no file to approve.)
 }
 
 @Entity('submission_documents')
