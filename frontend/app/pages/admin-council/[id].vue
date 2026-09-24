@@ -66,9 +66,26 @@ function docFor(itemCode: string) {
 const endorsing = ref(false)
 const endorseError = ref('')
 const certificationFile = ref<File | null>(null)
+const isDraggingCertification = ref(false)
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+function setCertificationFile(file: File | null) {
+  certificationFile.value = file
+  endorseError.value = ''
+}
 function onCertificationFileChange(e: Event) {
   const target = e.target as HTMLInputElement
-  certificationFile.value = target.files?.[0] ?? null
+  setCertificationFile(target.files?.[0] ?? null)
+}
+function onCertificationDrop(e: DragEvent) {
+  isDraggingCertification.value = false
+  setCertificationFile(e.dataTransfer?.files?.[0] ?? null)
+}
+function clearCertificationFile() {
+  setCertificationFile(null)
 }
 async function onEndorse() {
   if (!certificationFile.value) {
@@ -272,9 +289,34 @@ onMounted(async () => {
         <section class="admin-card">
           <div v-if="isForAdminCouncil" class="screening-actions">
             <p class="muted">The President has referred this request. Review the documents above, attach the certification, then endorse it to continue the approval flow.</p>
+
+            <label
+              class="file-drop"
+              :class="{ dragging: isDraggingCertification, filled: !!certificationFile }"
+              @dragover.prevent="isDraggingCertification = true"
+              @dragleave.prevent="isDraggingCertification = false"
+              @drop.prevent="onCertificationDrop"
+            >
+              <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" hidden @change="onCertificationFileChange" />
+              <template v-if="certificationFile">
+                <div class="file-drop-chip">
+                  <span class="file-drop-icon">📄</span>
+                  <div class="file-drop-info">
+                    <span class="file-drop-name">{{ certificationFile.name }}</span>
+                    <span class="file-drop-size">{{ formatFileSize(certificationFile.size) }}</span>
+                  </div>
+                  <button type="button" class="file-drop-remove" @click.prevent.stop="clearCertificationFile">✕</button>
+                </div>
+              </template>
+              <template v-else>
+                <span class="file-drop-icon">⬆</span>
+                <span class="file-drop-text"><strong>Click to choose a file</strong> or drag it here</span>
+                <span class="file-drop-hint">PDF, JPG, PNG, or DOC — the certification document</span>
+              </template>
+            </label>
+
             <div class="action-buttons">
-              <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" @change="onCertificationFileChange" />
-              <button class="action-btn primary" :disabled="endorsing" @click="onEndorse">
+              <button class="action-btn primary" :disabled="endorsing || !certificationFile" @click="onEndorse">
                 {{ endorsing ? 'Endorsing…' : 'Endorse Request' }}
               </button>
             </div>
@@ -346,7 +388,7 @@ onMounted(async () => {
   background: rgba(255, 255, 255, 0.12);
 }
 .admin-body {
-  max-width: 1400px;
+  max-width: 900px;
   margin: 28px auto;
   padding: 0 20px;
   display: flex;
@@ -367,7 +409,7 @@ onMounted(async () => {
 }
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
 .info-field {
@@ -427,13 +469,19 @@ onMounted(async () => {
   letter-spacing: 0.03em;
 }
 .admin-table td {
-  padding: 16px 14px;
+  padding: 12px;
   border-bottom: 1px solid #eee;
   vertical-align: top;
 }
 .employee-name {
   font-weight: 600;
   color: #1a1a1a;
+}
+.file-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
 }
 .view-link {
   display: inline-flex;
@@ -453,13 +501,6 @@ onMounted(async () => {
 .view-link:hover {
   background: var(--primary-green);
   color: #fff;
-}
-.file-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-  flex-wrap: wrap;
 }
 .status-card {
   display: flex;
@@ -512,6 +553,85 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+.file-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 2px dashed #cfcfcf;
+  border-radius: 8px;
+  padding: 24px 16px;
+  margin: 12px 0;
+  cursor: pointer;
+  text-align: center;
+  background: #fafafa;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.file-drop:hover {
+  border-color: var(--primary-green);
+  background: #f4faf4;
+}
+.file-drop.dragging {
+  border-color: var(--primary-green);
+  background: #eef8ee;
+}
+.file-drop.filled {
+  padding: 12px 16px;
+  align-items: stretch;
+  border-style: solid;
+  border-color: #d7ead7;
+  background: #f4faf4;
+  cursor: default;
+}
+.file-drop-icon {
+  font-size: 22px;
+}
+.file-drop-text {
+  font-size: 13.5px;
+  color: var(--gray);
+}
+.file-drop-hint {
+  font-size: 11.5px;
+  color: #999;
+}
+.file-drop-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.file-drop-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+.file-drop-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.file-drop-size {
+  font-size: 11.5px;
+  color: var(--gray);
+}
+.file-drop-remove {
+  border: none;
+  background: transparent;
+  color: var(--gray);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+.file-drop-remove:hover {
+  background: #fde8e8;
+  color: #b42318;
 }
 .action-buttons {
   display: flex;
