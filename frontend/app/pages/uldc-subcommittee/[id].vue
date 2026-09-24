@@ -290,7 +290,7 @@ onMounted(async () => {
                   <span v-if="docFor(item.code)?.isNotApplicable" class="muted na-text">Marked Not Applicable</span>
                   <span v-else-if="docFor(item.code)">{{ docFor(item.code)!.originalFileName }}</span>
                   <span v-else class="error-text">Not provided</span>
-                                    <div class="file-actions">
+                                    <div>
                     <a
                       v-if="docFor(item.code) && !docFor(item.code)!.isNotApplicable"
                       :href="getDocumentDownloadUrl(progress.submission.id, item.code)"
@@ -325,6 +325,12 @@ onMounted(async () => {
                 </td>
                 <td v-if="isUnderScreening" class="review-cell">
                   <template v-if="docFor(item.code)?.isNotApplicable">
+                    <textarea
+                      v-model="commentDrafts[item.code]"
+                      class="review-textarea"
+                      placeholder="Comment (required to reject)"
+                      rows="2"
+                    />
                     <div class="review-buttons">
                       <button
                         class="review-btn approve"
@@ -332,6 +338,13 @@ onMounted(async () => {
                         @click="acknowledgeDoc(item.code)"
                       >
                         {{ docFor(item.code)!.reviewStatus === 'acknowledged' ? 'Acknowledged' : 'Acknowledge' }}
+                      </button>
+                      <button
+                        class="review-btn reject"
+                        :disabled="reviewingCode === item.code"
+                        @click="rejectDoc(item.code)"
+                      >
+                        Reject
                       </button>
                     </div>
                     <p v-if="reviewErrorByCode[item.code]" class="item-error">{{ reviewErrorByCode[item.code] }}</p>
@@ -455,7 +468,7 @@ onMounted(async () => {
   background: rgba(255, 255, 255, 0.12);
 }
 .admin-body {
-  max-width: 1400px;
+  max-width: 900px;
   margin: 28px auto;
   padding: 0 20px;
   display: flex;
@@ -476,7 +489,7 @@ onMounted(async () => {
 }
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
 .info-field {
@@ -536,7 +549,7 @@ onMounted(async () => {
   letter-spacing: 0.03em;
 }
 .admin-table td {
-  padding: 16px 14px;
+  padding: 12px;
   border-bottom: 1px solid #eee;
   vertical-align: top;
 }
@@ -563,13 +576,6 @@ onMounted(async () => {
 .view-link:hover {
   background: var(--primary-green);
   color: #fff;
-}
-.file-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-  flex-wrap: wrap;
 }
 
 .status-card {
