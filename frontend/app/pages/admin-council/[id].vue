@@ -121,7 +121,7 @@ onMounted(async () => {
     <header class="admin-topbar">
       <div class="admin-title">Admin Council — Request Detail</div>
       <div class="admin-topbar-right">
-        <NuxtLink to="/admin-council" class="link-back">← All Requests</NuxtLink>
+        <NuxtLink to="/admin-council" class="link-back">All Requests</NuxtLink>
         <span v-if="user" class="session-email">{{ user.email }}</span>
         <button class="logout-btn" @click="logout(); router.push('/login')">Log out</button>
       </div>

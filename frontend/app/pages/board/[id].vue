@@ -109,7 +109,7 @@ onMounted(async () => {
     <header class="admin-topbar">
       <div class="admin-title">Board — Request Detail</div>
       <div class="admin-topbar-right">
-        <NuxtLink to="/board" class="link-back">← All Requests</NuxtLink>
+        <NuxtLink to="/board" class="link-back">All Requests</NuxtLink>
         <span v-if="user" class="session-email">{{ user.email }}</span>
         <button class="logout-btn" @click="logout(); router.push('/login')">Log out</button>
       </div>
@@ -239,7 +239,7 @@ onMounted(async () => {
                   <span v-if="docFor(item.code)?.isNotApplicable" class="muted na-text">Marked Not Applicable</span>
                   <span v-else-if="docFor(item.code)">{{ docFor(item.code)!.originalFileName }}</span>
                   <span v-else class="error-text">Not provided</span>
-                  <div class="file-actions">
+                  <div>
                     <a
                       v-if="docFor(item.code) && !docFor(item.code)!.isNotApplicable"
                       :href="getDocumentDownloadUrl(progress.submission.id, item.code)"
@@ -371,7 +371,7 @@ onMounted(async () => {
   background: rgba(255, 255, 255, 0.12);
 }
 .admin-body {
-  max-width: 1400px;
+  max-width: 900px;
   margin: 28px auto;
   padding: 0 20px;
   display: flex;
@@ -392,7 +392,7 @@ onMounted(async () => {
 }
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
 .info-field {
@@ -452,7 +452,7 @@ onMounted(async () => {
   letter-spacing: 0.03em;
 }
 .admin-table td {
-  padding: 16px 14px;
+  padding: 12px;
   border-bottom: 1px solid #eee;
   vertical-align: top;
 }
@@ -478,13 +478,6 @@ onMounted(async () => {
 .view-link:hover {
   background: var(--primary-green);
   color: #fff;
-}
-.file-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-  flex-wrap: wrap;
 }
 .status-card {
   display: flex;
