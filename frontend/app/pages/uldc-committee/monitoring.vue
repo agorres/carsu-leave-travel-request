@@ -162,6 +162,7 @@ onMounted(async () => {
     <header class="admin-topbar">
       <div class="admin-title">ULDC Committee — All Requests (Monitoring)</div>
       <div class="admin-topbar-right">
+        <NuxtLink to="/uldc-committee" class="monitoring-link">← Back to Requests</NuxtLink>
         <span v-if="user" class="session-email">{{ user.email }}</span>
         <button class="logout-btn" @click="logout(); router.push('/login')">Log out</button>
       </div>
@@ -225,7 +226,6 @@ onMounted(async () => {
       </div>
 
       <div class="monitoring-toolbar">
-        <NuxtLink to="/uldc-committee" class="back-link">← Back to Deliberation Queue</NuxtLink>
         <div class="monitoring-filters">
           <input v-model="search" class="search-input" type="text" placeholder="Search name, email, or application no." />
           <select v-model="statusFilter" class="status-select">
@@ -235,7 +235,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <p class="monitoring-note">Read-only — every request in the system, regardless of stage. Actions are still only available from the Deliberation Queue.</p>
+      <p class="monitoring-note">Read-only — every request in the system, regardless of stage. Actions are still only available from the Requests page.</p>
 
       <div v-if="loading" class="admin-card">
         <p class="muted">Loading requests…</p>
@@ -480,19 +480,23 @@ onMounted(async () => {
 .monitoring-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 8px;
 }
-.back-link {
-  color: var(--primary-green);
+.monitoring-link {
+  color: #fff;
+  font-size: 12.5px;
   font-weight: 600;
   text-decoration: none;
-  font-size: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  padding: 7px 12px;
+  border-radius: 6px;
+  white-space: nowrap;
 }
-.back-link:hover {
-  text-decoration: underline;
+.monitoring-link:hover {
+  background: rgba(255, 255, 255, 0.12);
 }
 .monitoring-filters {
   display: flex;
