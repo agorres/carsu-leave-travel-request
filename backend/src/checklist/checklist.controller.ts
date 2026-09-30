@@ -87,6 +87,15 @@ export class ChecklistController {
     return this.checklistService.listUldcCommitteeSubmissions();
   }
 
+  // ULDC Committee's system-wide monitoring view — every request in the
+  // system, any status, any stage. Read-only: this does not grant any
+  // action beyond what UldcCommitteeGuard-protected endpoints already allow.
+  @UseGuards(UldcCommitteeGuard)
+  @Get('uldc-committee/monitoring')
+  listAllSubmissionsForMonitoring() {
+    return this.checklistService.listAllSubmissionsForMonitoring();
+  }
+
   // Board view — only requests ULDC has already forwarded.
   @UseGuards(BoardGuard)
   @Get('board/submitted')

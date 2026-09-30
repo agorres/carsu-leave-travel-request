@@ -63,6 +63,7 @@ onMounted(async () => {
     <header class="admin-topbar">
       <div class="admin-title">ULDC Committee — Deliberation Queue</div>
       <div class="admin-topbar-right">
+        <NuxtLink to="/uldc-committee/monitoring" class="monitoring-link">View All Requests →</NuxtLink>
         <span v-if="user" class="session-email">{{ user.email }}</span>
         <button class="logout-btn" @click="logout(); router.push('/login')">Log out</button>
       </div>
@@ -155,6 +156,19 @@ onMounted(async () => {
   font-size: 12.5px;
   opacity: 0.85;
   white-space: nowrap;
+}
+.monitoring-link {
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  padding: 7px 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.monitoring-link:hover {
+  background: rgba(255, 255, 255, 0.12);
 }
 .logout-btn {
   background: none;

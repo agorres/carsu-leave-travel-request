@@ -193,6 +193,21 @@ export class ChecklistService {
   }
 
   /**
+   * ULDC Committee's system-wide monitoring view: every submission
+   * regardless of status or which stage currently owns it — including
+   * ones still under Sub-Committee screening that the Committee itself
+   * has no action on yet. Read-only; ULDC Committee has no ability to act
+   * on a request here that isn't already reachable through its normal
+   * queue (listUldcCommitteeSubmissions) or reviewDocument/concludeUldcDeliberation.
+   */
+  async listAllSubmissionsForMonitoring(): Promise<Submission[]> {
+    return this.submissionRepo.find({
+      relations: { documents: true },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  /**
    * Board view: requests currently awaiting Board action (legacy
    * standard-flow final approval, non-IMP final approval, or IMP
    * confirmation), plus anything the Board has already acted on further

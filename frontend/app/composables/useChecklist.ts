@@ -199,6 +199,15 @@ export function useChecklist() {
     });
   }
 
+  // ULDC Committee — system-wide monitoring view, every request regardless
+  // of status or stage.
+  async function listAllSubmissionsForMonitoring(): Promise<Submission[]> {
+    return $fetch(`${base}/checklist/uldc-committee/monitoring`, {
+      headers: authHeaders(),
+      cache: 'no-store',
+    });
+  }
+
   // Board — only requests ULDC has already forwarded.
   async function listBoardSubmissions(): Promise<Submission[]> {
     return $fetch(`${base}/checklist/board/submitted`, {
@@ -371,6 +380,7 @@ export function useChecklist() {
     submitSubmission,
     listUldcSubcommitteeSubmissions,
     listUldcCommitteeSubmissions,
+    listAllSubmissionsForMonitoring,
     listBoardSubmissions,
     listAdminCouncilSubmissions,
     listPresidentSubmissions,
