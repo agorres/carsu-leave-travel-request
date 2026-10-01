@@ -62,6 +62,7 @@ onMounted(async () => {
     <header class="admin-topbar">
       <div class="admin-title">Admin Council — Requests</div>
       <div class="admin-topbar-right">
+        <MyRequestsLink />
         <span v-if="user" class="session-email">{{ user.email }}</span>
         <button class="logout-btn" @click="logout(); router.push('/login')">Log out</button>
       </div>

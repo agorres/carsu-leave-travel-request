@@ -114,6 +114,7 @@ onMounted(loadRequests)
         <span class="app-title">CARSU · My Requests</span>
       </div>
       <div class="topbar-right">
+        <BackToApprovals />
         <NuxtLink to="/" class="new-link">+ New Request</NuxtLink>
         <span v-if="user" class="session-email">{{ user.email }}</span>
         <button class="logout-btn" @click="logout(); router.push('/login')">Log out</button>
