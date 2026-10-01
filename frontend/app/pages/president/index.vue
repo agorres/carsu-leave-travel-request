@@ -44,7 +44,7 @@ function statusLabel(status: string) {
 
 function formatDate(value: string | null) {
   if (!value) return '—'
-  return new Date(value).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+  return new Date(value).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 }
 
 // The President's queue has two entry points: fresh out of ULDC Committee
@@ -130,7 +130,7 @@ onMounted(async () => {
                 <span class="status-pill" :class="`pill-${s.status}`">{{ statusLabel(s.status) }}</span>
               </td>
               <td>
-                <NuxtLink :to="`/president/${s.id}`" class="view-link">View →</NuxtLink>
+                <NuxtLink :to="`/president/${s.id}`" class="view-link">View</NuxtLink>
               </td>
             </tr>
           </tbody>

@@ -47,7 +47,7 @@ function statusLabel(status: string) {
 
 function formatDate(value: string | null) {
   if (!value) return '—'
-  return new Date(value).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+  return new Date(value).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 }
 
 onMounted(async () => {
@@ -118,7 +118,7 @@ onMounted(async () => {
                 <span class="status-pill" :class="`pill-${s.status}`">{{ statusLabel(s.status) }}</span>
               </td>
               <td>
-                <NuxtLink :to="`/uldc-subcommittee/${s.id}`" class="view-link">View →</NuxtLink>
+                <NuxtLink :to="`/uldc-subcommittee/${s.id}`" class="view-link">View</NuxtLink>
               </td>
             </tr>
           </tbody>

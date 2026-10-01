@@ -194,7 +194,7 @@ onMounted(async () => {
               target="_blank"
               rel="noopener"
             >
-              View Reference Slip →
+              View Reference Slip
             </a>
             <a
               v-if="progress.submission.referenceSlipOriginalFileName"
@@ -202,7 +202,7 @@ onMounted(async () => {
               class="view-link"
               :download="progress.submission.referenceSlipOriginalFileName"
             >
-              Download ↓
+              Download
             </a>
             <a
               v-if="progress.submission.certificationOriginalFileName"
@@ -211,7 +211,7 @@ onMounted(async () => {
               target="_blank"
               rel="noopener"
             >
-              View Certification →
+              View Certification
             </a>
             <a
               v-if="progress.submission.certificationOriginalFileName"
@@ -219,7 +219,7 @@ onMounted(async () => {
               class="view-link"
               :download="progress.submission.certificationOriginalFileName"
             >
-              Download ↓
+              Download
             </a>
           </div>
         </section>
@@ -298,7 +298,7 @@ onMounted(async () => {
                       target="_blank"
                       rel="noopener"
                     >
-                      View File →
+                      View File
                     </a>
                     <a
                       v-if="docFor(item.code) && !docFor(item.code)!.isNotApplicable"
@@ -306,7 +306,7 @@ onMounted(async () => {
                       class="view-link"
                       :download="docFor(item.code)!.originalFileName!"
                     >
-                      Download ↓
+                      Download
                     </a>
                   </div>
                 </td>

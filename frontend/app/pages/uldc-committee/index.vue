@@ -63,7 +63,7 @@ onMounted(async () => {
     <header class="admin-topbar">
       <div class="admin-title">ULDC Committee — Requests</div>
       <div class="admin-topbar-right">
-        <NuxtLink to="/uldc-committee/monitoring" class="monitoring-link">View Dashboard →</NuxtLink>
+        <NuxtLink to="/uldc-committee/monitoring" class="monitoring-link">View Dashboard</NuxtLink>
         <span v-if="user" class="session-email">{{ user.email }}</span>
         <button class="logout-btn" @click="logout(); router.push('/login')">Log out</button>
       </div>
@@ -116,7 +116,7 @@ onMounted(async () => {
                 <span class="status-pill" :class="`pill-${s.status}`">{{ statusLabel(s.status) }}</span>
               </td>
               <td>
-                <NuxtLink :to="`/uldc-committee/${s.id}`" class="view-link">View →</NuxtLink>
+                <NuxtLink :to="`/uldc-committee/${s.id}`" class="view-link">View</NuxtLink>
               </td>
             </tr>
           </tbody>

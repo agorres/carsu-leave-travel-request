@@ -283,7 +283,7 @@ onMounted(async () => {
                 <span class="status-pill" :class="`pill-${s.status}`">{{ statusLabel(s.status) }}</span>
               </td>
               <td>
-                <NuxtLink :to="`/uldc-committee/${s.id}`" class="view-link">View →</NuxtLink>
+                <NuxtLink :to="`/uldc-committee/${s.id}`" class="view-link">View</NuxtLink>
               </td>
             </tr>
           </tbody>

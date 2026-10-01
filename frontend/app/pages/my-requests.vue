@@ -153,7 +153,7 @@ onMounted(loadRequests)
               </td>
               <td>
                 <NuxtLink :to="`/submit/${s.id}`" class="view-link">
-                  {{ s.status === 'returned_for_correction' ? 'Fix Now →' : 'View →' }}
+                  {{ s.status === 'returned_for_correction' ? 'Fix Now' : 'View' }}
                 </NuxtLink>
               </td>
             </tr>
