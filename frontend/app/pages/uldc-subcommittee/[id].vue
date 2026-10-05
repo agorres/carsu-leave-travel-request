@@ -396,7 +396,7 @@ onMounted(async () => {
           </div>
 
           <div v-else-if="isForBoard" class="screening-actions">
-            <p class="muted">ULDC Sub-Committee has approved every document. This request is now with the Board for final deliberation — no further action needed here.</p>
+            <p class="muted">ULDC Sub-Committee has approved every document. This request is now with the Board for final deliberation.</p>
           </div>
 
           <div v-else-if="isBoardApproved" class="screening-actions">
@@ -404,7 +404,7 @@ onMounted(async () => {
           </div>
 
           <div v-else-if="isPastUldc" class="screening-actions">
-            <p class="muted">This request has moved past ULDC Sub-Committee screening and is now with {{ statusLabel }} — no further action needed here.</p>
+            <p class="muted">This request has moved past ULDC Sub-Committee screening and is now with {{ statusLabel }}.</p>
           </div>
         </section>
       </template>

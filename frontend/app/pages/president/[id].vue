@@ -367,7 +367,7 @@ onMounted(async () => {
 
           <div v-else-if="isForAdminCouncil" class="screening-actions">
             <p class="muted">
-              ✓ You referred this request on {{ formatDateTime(progress.submission.presidentReferencedAt) }}. It is now {{ statusLabel.toLowerCase() }} — no further action needed here yet.
+              ✓ You referred this request on {{ formatDateTime(progress.submission.presidentReferencedAt) }}. It is now {{ statusLabel.toLowerCase() }}.
             </p>
           </div>
 
@@ -396,7 +396,7 @@ onMounted(async () => {
           </div>
 
           <div v-else-if="isForBoardConfirmation" class="screening-actions">
-            <p class="muted">✓ You approved this request on {{ formatDateTime(progress.submission.presidentApprovedAt) }}. It is now with the Board for final confirmation — no further action needed here.</p>
+            <p class="muted">✓ You approved this request on {{ formatDateTime(progress.submission.presidentApprovedAt) }}. It is now with the Board for final confirmation.</p>
           </div>
 
           <div v-else-if="isBoardConfirmed" class="screening-actions">
@@ -404,7 +404,7 @@ onMounted(async () => {
           </div>
 
           <div v-else-if="isForBoardApproval || isBoardApproved" class="screening-actions">
-            <p class="muted">This request has moved past the President and is now {{ statusLabel.toLowerCase() }} — no further action needed here.</p>
+            <p class="muted">This request has moved past the President and is now {{ statusLabel.toLowerCase() }}.</p>
           </div>
         </section>
       </template>

@@ -399,7 +399,7 @@ onMounted(async () => {
           </div>
 
           <div v-else-if="isPastDeliberation" class="screening-actions">
-            <p class="muted">This request has moved past ULDC Committee deliberation and is now with {{ statusLabel }} — no further action needed here.</p>
+            <p class="muted">This request has moved past ULDC Committee deliberation and is now with {{ statusLabel }}.</p>
           </div>
         </section>
       </template>

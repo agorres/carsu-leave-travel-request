@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useChecklist, type Submission } from '~/composables/useChecklist'
 import { useAuth } from '~/composables/useAuth'
+import { useRequestFilters } from '~/composables/useRequestFilters'
 
 definePageMeta({ middleware: 'board' })
 
@@ -12,6 +13,10 @@ const router = useRouter()
 const submissions = ref<Submission[]>([])
 const loading = ref(true)
 const loadError = ref('')
+
+// Statuses that are waiting for THIS official to act on.
+const AWAITING_STATUSES = ['for_board_deliberation', 'for_board_confirmation', 'for_board_approval']
+const { mode, typeFilter, filtered, pendingCount, typeOptions } = useRequestFilters(submissions, AWAITING_STATUSES)
 
 const REQUEST_TYPE_LABELS: Record<string, string> = {
   study_leave: 'Study Leave',
@@ -80,6 +85,19 @@ onMounted(async () => {
         <p class="muted">No requests have been forwarded by ULDC yet.</p>
       </div>
 
+      <template v-else>
+        <RequestFilters
+          v-model:mode="mode"
+          v-model:type="typeFilter"
+          :pending-count="pendingCount"
+          :total-count="submissions.length"
+          :type-options="typeOptions"
+        />
+
+        <div v-if="filtered.length === 0" class="admin-card">
+          <p class="muted">{{ mode === 'awaiting' ? 'Nothing is waiting for your action with this filter. Switch to “All requests” to see ones already handled.' : 'No requests of this type.' }}</p>
+        </div>
+
       <div v-else class="admin-card">
         <table class="admin-table">
           <thead>
@@ -94,7 +112,7 @@ onMounted(async () => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="s in submissions" :key="s.id">
+            <tr v-for="s in filtered" :key="s.id">
               <td class="app-number">{{ s.applicationNumber ?? '—' }}</td>
               <td>
                 <div class="employee-name">{{ s.employeeName }}</div>
@@ -120,6 +138,7 @@ onMounted(async () => {
           </tbody>
         </table>
       </div>
+      </template>
     </main>
   </div>
 </template>

@@ -324,7 +324,7 @@ onMounted(async () => {
           </div>
 
           <div v-else-if="isPastAdminCouncil" class="screening-actions">
-            <p class="muted">This request has moved past Admin Council and is now {{ statusLabel.toLowerCase() }} — no further action needed here.</p>
+            <p class="muted">This request has moved past Admin Council and is now {{ statusLabel.toLowerCase() }}.</p>
           </div>
         </section>
       </template>
