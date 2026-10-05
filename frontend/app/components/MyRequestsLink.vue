@@ -11,14 +11,16 @@
 .my-requests-btn {
   background: #009900;
   color: #fff;
+  border: 1px solid #009900;
   padding: 7px 12px;
   border-radius: 6px;
   font-size: 12.5px;
   font-weight: 600;
   text-decoration: none;
   white-space: nowrap;
+  transition: background 0.15s;
 }
 .my-requests-btn:hover {
-  background: #007a00;
+  background: #00b300;
 }
 </style>

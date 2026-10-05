@@ -66,7 +66,7 @@ onMounted(async () => {
 <template>
   <div class="admin-shell">
     <header class="admin-topbar">
-      <div class="admin-title">ULDC Committee — Requests</div>
+      <div class="admin-title">ULDC Committee — Requests for Deliberation</div>
       <div class="admin-topbar-right">
         <NuxtLink to="/uldc-committee/monitoring" class="monitoring-link">View Dashboard</NuxtLink>
         <MyRequestsLink />
