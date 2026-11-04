@@ -106,7 +106,7 @@ onMounted(loadRequests)
   <div class="shell">
     <header class="topbar">
       <div class="topbar-left">
-        <NuxtLink to="/" class="app-icon" aria-label="Back to new request">
+        <NuxtLink to="/new-request" class="app-icon" aria-label="Back to new request">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
             <path d="M8 5l8 7-8 7" stroke="#003300" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -115,7 +115,6 @@ onMounted(loadRequests)
       </div>
       <div class="topbar-right">
         <BackToApprovals />
-        <NuxtLink to="/" class="new-link">+ New Request</NuxtLink>
         <span v-if="user" class="session-email">{{ user.email }}</span>
         <button class="logout-btn" @click="logout(); router.push('/login')">Log out</button>
       </div>
@@ -123,6 +122,11 @@ onMounted(loadRequests)
 
     <main class="body">
       <p v-if="loadError" class="item-error">{{ loadError }}</p>
+
+      <section class="card toolbar">
+        <button class="refresh-btn" :disabled="loading" @click="loadRequests">Refresh</button>
+        <NuxtLink to="/new-request" class="new-btn">+ New Request</NuxtLink>
+      </section>
 
       <section v-if="loading" class="card">
         <div class="section-body">
@@ -215,15 +219,46 @@ onMounted(loadRequests)
   font-weight: 600;
   letter-spacing: 0.01em;
 }
-.new-link {
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
+}
+.refresh-btn {
+  background: #fff;
+  color: var(--emerald);
+  border: 1px solid var(--emerald);
+  padding: 8px 16px;
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.refresh-btn:hover:not(:disabled) {
+  background: #eef5ee;
+}
+.refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.new-btn {
+  background: var(--emerald);
   color: #fff;
-  background: var(--primary-green);
-  padding: 8px 14px;
-  border-radius: 6px;
+  border: 1px solid var(--emerald);
+  padding: 8px 16px;
+  border-radius: 3px;
   text-decoration: none;
   font-size: 13px;
   font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   white-space: nowrap;
+}
+.new-btn:hover {
+  background: #004d00;
+  border-color: #004d00;
 }
 .topbar-right {
   display: flex;

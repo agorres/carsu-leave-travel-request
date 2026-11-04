@@ -30,6 +30,8 @@ export const REQUEST_TYPE_PREFIXES: Record<RequestType, string> = {
 // Request types where the employee must declare whether the travel is
 // official or personal in nature (see TravelPurpose in submission.entity.ts).
 export const TRAVEL_PURPOSE_APPLICABLE_TYPES: RequestType[] = [
+  RequestType.STUDY_LEAVE,
+  RequestType.STUDY_LEAVE_EXTENSION,
   RequestType.LOCAL_TRAVEL,
   RequestType.FOREIGN_TRAVEL,
   RequestType.PERSONAL_TRAVEL,

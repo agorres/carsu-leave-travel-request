@@ -36,7 +36,7 @@ const employeeEmail = computed(() =>
 )
 
 const ABROAD_ELIGIBLE = ['study_leave', 'foreign_travel']
-const TRAVEL_PURPOSE_APPLICABLE = ['local_travel', 'foreign_travel', 'personal_travel']
+const TRAVEL_PURPOSE_APPLICABLE = ['study_leave', 'study_leave_extension', 'local_travel', 'foreign_travel', 'personal_travel']
 
 const submissionId = ref<string | null>(null)
 const progress = ref<SubmissionProgress | null>(null)
@@ -286,7 +286,7 @@ async function resubmitRequest() {
 }
 
 function startNewRequest() {
-  router.push('/')
+  router.push('/new-request')
 }
 
 function docFor(itemCode: string) {
@@ -332,7 +332,6 @@ const groupedItems = computed(() => {
       </div>
       <div class="topbar-right">
         <BackToApprovals />
-        <NuxtLink to="/my-requests" class="my-requests-link">My Requests</NuxtLink>
         <span v-if="user" class="session-email">{{ user.email }}</span>
         <button class="logout-btn" @click="logout(); router.push('/login')">Log out</button>
       </div>
@@ -708,11 +707,11 @@ const groupedItems = computed(() => {
 
 .body {
   flex: 1;
-  padding: 28px 32px 48px;
+  padding: 32px 40px 56px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  max-width: 860px;
+  gap: 24px;
+  max-width: 1120px;
   width: 100%;
   margin: 0 auto;
 }
@@ -728,12 +727,12 @@ const groupedItems = computed(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 20px;
+  padding: 18px 28px;
   border-bottom: 1px solid #eee;
   background: #f7faf7;
 }
 .toolbar-title {
-  font-size: 14.5px;
+  font-size: 16.5px;
   font-weight: 700;
   color: var(--emerald);
 }
@@ -747,14 +746,14 @@ const groupedItems = computed(() => {
 }
 
 .section-body {
-  padding: 20px;
+  padding: 28px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 22px;
 }
 .field-row {
   display: flex;
-  gap: 16px;
+  gap: 22px;
   flex-wrap: wrap;
 }
 .field {
@@ -765,7 +764,7 @@ const groupedItems = computed(() => {
   gap: 6px;
 }
 .field label {
-  font-size: 11px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--gray);
@@ -775,8 +774,8 @@ const groupedItems = computed(() => {
 .field select {
   border: 1px solid #dcdcdc;
   border-radius: 4px;
-  padding: 9px 11px;
-  font-size: 14px;
+  padding: 13px 14px;
+  font-size: 15.5px;
   font-family: inherit;
   background: #fff;
 }
@@ -802,8 +801,8 @@ const groupedItems = computed(() => {
 .email-compound input {
   border: none;
   flex: 1;
-  padding: 9px 11px;
-  font-size: 14px;
+  padding: 13px 14px;
+  font-size: 15.5px;
   font-family: inherit;
 }
 .email-compound input:focus {
@@ -814,10 +813,10 @@ const groupedItems = computed(() => {
   outline-offset: 1px;
 }
 .email-suffix {
-  padding: 9px 11px;
+  padding: 13px 14px;
   background: #f5f5f5;
   color: var(--gray);
-  font-size: 13.5px;
+  font-size: 15px;
   border-left: 1px solid #dcdcdc;
   white-space: nowrap;
 }
@@ -876,9 +875,9 @@ const groupedItems = computed(() => {
   background: var(--primary-green);
   color: #fff;
   border: none;
-  padding: 10px 20px;
+  padding: 13px 26px;
   border-radius: 4px;
-  font-size: 13.5px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
 }

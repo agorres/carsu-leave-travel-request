@@ -96,6 +96,15 @@ export class ChecklistController {
     return this.checklistService.listAllSubmissionsForMonitoring();
   }
 
+  // Leave & Travel Monitoring for every approving official (Sub-Committee,
+  // Committee, Board, Admin Council, President). Read-only: lists every
+  // request at any stage and grants no action of its own.
+  @UseGuards(ReviewerGuard)
+  @Get('monitoring')
+  listAllSubmissionsForReviewerMonitoring() {
+    return this.checklistService.listAllSubmissionsForMonitoring();
+  }
+
   // Board view — only requests ULDC has already forwarded.
   @UseGuards(BoardGuard)
   @Get('board/submitted')

@@ -1,26 +1,7 @@
 <script setup lang="ts">
-// Shown in every approving official's top bar so they can open their own
-// (employee-style) requests, separate from the approvals queue.
+// Intentionally renders nothing: approving officials no longer get a
+// "My Requests" button in their top bar. Kept as an empty component so the
+// pages that still reference it keep working.
 </script>
 
-<template>
-  <NuxtLink to="/my-requests" class="my-requests-btn">My Requests</NuxtLink>
-</template>
-
-<style scoped>
-.my-requests-btn {
-  background: #009900;
-  color: #fff;
-  border: 1px solid #009900;
-  padding: 7px 12px;
-  border-radius: 6px;
-  font-size: 12.5px;
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-  transition: background 0.15s;
-}
-.my-requests-btn:hover {
-  background: #00b300;
-}
-</style>
+<template><!-- empty --></template>

@@ -199,10 +199,10 @@ export function useChecklist() {
     });
   }
 
-  // ULDC Committee — system-wide monitoring view, every request regardless
+  // Any approving official — system-wide monitoring view, every request regardless
   // of status or stage.
   async function listAllSubmissionsForMonitoring(): Promise<Submission[]> {
-    return $fetch(`${base}/checklist/uldc-committee/monitoring`, {
+    return $fetch(`${base}/checklist/monitoring`, {
       headers: authHeaders(),
       cache: 'no-store',
     });
