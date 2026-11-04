@@ -2,12 +2,14 @@
 import { ref, computed, onMounted } from 'vue'
 import { useChecklist, type Submission } from '~/composables/useChecklist'
 import { useAuth } from '~/composables/useAuth'
+import { roleHomePath } from '~/utils/role-home'
 
-definePageMeta({ middleware: 'uldc-committee' })
+definePageMeta({ middleware: 'reviewer' })
 
 const { listAllSubmissionsForMonitoring } = useChecklist()
 const { user, logout } = useAuth()
 const router = useRouter()
+const homePath = computed(() => roleHomePath(user.value?.role))
 
 const submissions = ref<Submission[]>([])
 const loading = ref(true)
@@ -160,9 +162,8 @@ onMounted(async () => {
 <template>
   <div class="admin-shell">
     <header class="admin-topbar">
-      <div class="admin-title">ULDC Committee — All Requests (Monitoring)</div>
+      <div class="admin-title">Leave &amp; Travel Monitoring</div>
       <div class="admin-topbar-right">
-        <NuxtLink to="/uldc-committee" class="monitoring-link">Back to Requests</NuxtLink>
         <MyRequestsLink />
         <span v-if="user" class="session-email">{{ user.email }}</span>
         <button class="logout-btn" @click="logout(); router.push('/login')">Log out</button>
@@ -236,7 +237,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <p class="monitoring-note">Read-only — every request in the system, regardless of stage. Actions are still only available from the Requests page.</p>
+      <p class="monitoring-note">Read-only — every request in the system, regardless of stage. Actions are only available from For Approval.</p>
 
       <div v-if="loading" class="admin-card">
         <p class="muted">Loading requests…</p>
@@ -284,7 +285,7 @@ onMounted(async () => {
                 <span class="status-pill" :class="`pill-${s.status}`">{{ statusLabel(s.status) }}</span>
               </td>
               <td>
-                <NuxtLink :to="`/uldc-committee/${s.id}`" class="view-link">View</NuxtLink>
+                <NuxtLink :to="`${homePath}/${s.id}`" class="view-link">View</NuxtLink>
               </td>
             </tr>
           </tbody>

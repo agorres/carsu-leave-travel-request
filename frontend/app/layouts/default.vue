@@ -44,7 +44,7 @@ const displayName = computed(() => {
 })
 const roleLabel = computed(() => ROLE_LABELS[user.value?.role ?? ''] ?? '')
 
-interface MenuItem { label: string; to: string; icon: string }
+interface MenuItem { label: string; to: string; icon: string; children?: MenuItem[] }
 
 const ICONS: Record<string, string> = {
   queue: 'M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm-2 14l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z',
@@ -55,6 +55,7 @@ const ICONS: Record<string, string> = {
   search: 'M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z',
   menu: 'M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z',
   back: 'M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z',
+  chevron: 'M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z',
   person: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z',
 }
 
@@ -65,10 +66,15 @@ const roleItems = computed<MenuItem[]>(() => {
     case 'board':
     case 'admin_council':
     case 'president':
-      // Same two entries for every approving official.
+      // Same entry for every approving official: Monitoring, with the
+      // official's own approvals queue as its sub-item.
       return [
-        { label: 'Leave & Travel Monitoring', to: '/monitoring', icon: 'dashboard' },
-        { label: 'Requests for Action', to: roleHomePath(user.value?.role), icon: 'queue' },
+        {
+          label: 'Leave & Travel Monitoring',
+          to: '/monitoring',
+          icon: 'dashboard',
+          children: [{ label: 'For Approval', to: roleHomePath(user.value?.role), icon: 'queue' }],
+        },
       ]
     default:
       return []
@@ -80,23 +86,60 @@ const items = computed<MenuItem[]>(() => [
   { label: 'My Requests', to: '/my-requests', icon: 'folder' },
 ])
 
-const visibleItems = computed(() => {
+// Every menu entry including sub-items, for route matching.
+const flatItems = computed<MenuItem[]>(() => items.value.flatMap((i) => [i, ...(i.children ?? [])]))
+
+const visibleItems = computed<MenuItem[]>(() => {
   const q = query.value.trim().toLowerCase()
-  return q ? items.value.filter((i) => i.label.toLowerCase().includes(q)) : items.value
+  if (!q) return items.value
+  return items.value.flatMap((i) => {
+    if (i.label.toLowerCase().includes(q)) return [i]
+    const kids = (i.children ?? []).filter((c) => c.label.toLowerCase().includes(q))
+    return kids.length ? [{ ...i, children: kids }] : []
+  })
 })
+
+// A group with sub-items opens when its parent is clicked, and stays open
+// while the person is anywhere inside it.
+const openGroups = ref<Record<string, boolean>>({})
+
+function inGroup(item: MenuItem) {
+  const path = route.path
+  return path === item.to || (item.children ?? []).some((c) => path === c.to || path.startsWith(c.to + '/'))
+}
+
+function isOpen(item: MenuItem) {
+  return !!item.children?.length && (!!query.value.trim() || !!openGroups.value[item.to])
+}
+
+function onParentClick(item: MenuItem) {
+  const wasInside = inGroup(item)
+  openGroups.value[item.to] = wasInside ? !openGroups.value[item.to] : true
+  if (route.path !== item.to) router.push(item.to)
+}
+
+watch(
+  () => [route.path, ready.value, user.value?.role],
+  () => {
+    for (const item of items.value) {
+      if (item.children?.length && inGroup(item)) openGroups.value[item.to] = true
+    }
+  },
+  { immediate: true },
+)
 
 // Highlight only the most specific match, so /uldc-committee/monitoring
 // doesn't also light up /uldc-committee.
 const activeTo = computed(() => {
   const path = route.path
-  const matches = items.value.filter((i) => (i.to === '/' ? path === '/' : path === i.to || path.startsWith(i.to + '/')))
+  const matches = flatItems.value.filter((i) => (i.to === '/' ? path === '/' : path === i.to || path.startsWith(i.to + '/')))
   matches.sort((a, b) => b.to.length - a.to.length)
   return matches[0]?.to ?? ''
 })
 
 // Back arrow only on pages that aren't a menu destination (request detail
 // pages and the like); menu pages are reached from the sidebar instead.
-const showBack = computed(() => ready.value && !!user.value && !items.value.some((i) => i.to === route.path))
+const showBack = computed(() => ready.value && !!user.value && !flatItems.value.some((i) => i.to === route.path))
 
 function goBack() {
   if (window.history.state?.back) router.back()
@@ -184,16 +227,41 @@ watch(() => route.fullPath, () => { drawerOpen.value = false; accountOpen.value 
         <div class="menu-heading">Menu</div>
 
         <nav v-if="ready">
-          <NuxtLink
-            v-for="item in visibleItems"
-            :key="item.to"
-            :to="item.to"
-            class="menu-item"
-            :class="{ active: item.to === activeTo }"
-          >
-            <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path :d="ICONS[item.icon]" fill="currentColor" /></svg>
-            <span>{{ item.label }}</span>
-          </NuxtLink>
+          <template v-for="item in visibleItems" :key="item.to">
+            <a
+              v-if="item.children?.length"
+              :href="item.to"
+              class="menu-item"
+              :class="{ active: item.to === activeTo }"
+              :aria-expanded="isOpen(item)"
+              @click.prevent="onParentClick(item)"
+            >
+              <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path :d="ICONS[item.icon]" fill="currentColor" /></svg>
+              <span>{{ item.label }}</span>
+              <svg class="chevron" :class="{ open: isOpen(item) }" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path :d="ICONS.chevron" fill="currentColor" /></svg>
+            </a>
+            <NuxtLink
+              v-else
+              :to="item.to"
+              class="menu-item"
+              :class="{ active: item.to === activeTo }"
+            >
+              <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path :d="ICONS[item.icon]" fill="currentColor" /></svg>
+              <span>{{ item.label }}</span>
+            </NuxtLink>
+
+            <div v-if="isOpen(item)" class="submenu">
+              <NuxtLink
+                v-for="child in item.children"
+                :key="child.to"
+                :to="child.to"
+                class="menu-item sub"
+                :class="{ active: child.to === activeTo }"
+              >
+                <span>{{ child.label }}</span>
+              </NuxtLink>
+            </div>
+          </template>
           <p v-if="visibleItems.length === 0" class="no-match">No menu items match “{{ query }}”.</p>
 
           <button class="menu-item signout" @click="signOut">
@@ -410,6 +478,10 @@ watch(() => route.fullPath, () => { drawerOpen.value = false; accountOpen.value 
 .menu-item svg { color: #5b5b5b; flex-shrink: 0; }
 .menu-item:hover { background: #f3f3f3; }
 .menu-item.active { background: #e8e8e8; }
+.chevron { margin-left: auto; transition: transform 0.15s ease; }
+.chevron.open { transform: rotate(180deg); }
+.submenu { display: flex; flex-direction: column; margin: 2px 0 4px; }
+.menu-item.sub { height: 42px; padding-left: 64px; font-weight: 400; }
 .menu-item.active svg { color: var(--emerald); }
 .menu-item:focus-visible { outline: 2px solid var(--emerald); outline-offset: -2px; }
 .signout { margin-top: 8px; }
@@ -546,5 +618,6 @@ watch(() => route.fullPath, () => { drawerOpen.value = false; accountOpen.value 
 
 @media (prefers-reduced-motion: reduce) {
   .sidebar { transition: none; }
+  .chevron { transition: none; }
 }
 </style>
