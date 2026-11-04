@@ -54,7 +54,6 @@ const ICONS: Record<string, string> = {
   logout: 'M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z',
   search: 'M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z',
   menu: 'M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z',
-  back: 'M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z',
   chevron: 'M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z',
   person: 'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z',
 }
@@ -137,15 +136,6 @@ const activeTo = computed(() => {
   return matches[0]?.to ?? ''
 })
 
-// Back arrow only on pages that aren't a menu destination (request detail
-// pages and the like); menu pages are reached from the sidebar instead.
-const showBack = computed(() => ready.value && !!user.value && !flatItems.value.some((i) => i.to === route.path))
-
-function goBack() {
-  if (window.history.state?.back) router.back()
-  else router.push(roleHomePath(user.value?.role))
-}
-
 function signOut() {
   accountOpen.value = false
   logout()
@@ -185,12 +175,12 @@ watch(() => route.fullPath, () => { drawerOpen.value = false; accountOpen.value 
 <template>
   <slot v-if="!showShell" />
 
-  <div v-else class="app-frame" :class="{ 'has-back': showBack }">
+  <div v-else class="app-frame">
     <div class="mobile-bar">
       <button class="icon-btn" aria-label="Open menu" @click="drawerOpen = true">
         <svg viewBox="0 0 24 24" width="22" height="22"><path :d="ICONS.menu" fill="currentColor" /></svg>
       </button>
-      <span class="mobile-title">CARSU Leave &amp; Travel</span>
+      <span class="mobile-title">Leave &amp; Travel</span>
     </div>
 
     <div v-if="drawerOpen" class="scrim" @click="drawerOpen = false"></div>
@@ -273,10 +263,6 @@ watch(() => route.fullPath, () => { drawerOpen.value = false; accountOpen.value 
     </aside>
 
     <div class="app-content">
-      <button v-if="showBack" class="back-btn" aria-label="Go back" @click="goBack">
-        <svg viewBox="0 0 24 24" width="26" height="26"><path :d="ICONS.back" fill="currentColor" /></svg>
-      </button>
-
       <div v-if="ready && user" ref="accountEl" class="account">
         <button
           class="account-btn"
@@ -357,13 +343,9 @@ watch(() => route.fullPath, () => { drawerOpen.value = false; accountOpen.value 
 .app-content :is(.session-email, .logout-btn) {
   display: none;
 }
-/* Room for the round back button on detail pages. */
-.has-back .app-content :is(.admin-title, .topbar-left) {
-  padding-left: 52px;
-}
-/* The circle icon in each page's own top bar is redundant: the sidebar
-   already carries the app's circle icon. */
-.app-content .app-icon {
+/* No arrow circles in the page headers: the only one left is the sidebar's.
+   High specificity so it beats each page's own scoped styles. */
+.app-content :is(.shell, .admin-shell) > :is(.topbar, .admin-topbar) .app-icon {
   display: none;
 }
 </style>
@@ -512,24 +494,6 @@ watch(() => route.fullPath, () => { drawerOpen.value = false; accountOpen.value 
   z-index: 40;
 }
 
-.back-btn {
-  position: absolute;
-  top: 16px;
-  left: 28px;
-  z-index: 5;
-  width: 40px;
-  height: 40px;
-  border: none;
-  border-radius: 50%;
-  background: #fff;
-  color: var(--emerald);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-.back-btn:hover { background: #e6efe6; }
-.back-btn:focus-visible,
 .account-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
 .account { position: absolute; top: 16px; right: 24px; z-index: 6; }

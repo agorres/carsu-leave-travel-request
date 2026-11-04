@@ -328,7 +328,7 @@ const groupedItems = computed(() => {
             <path d="M8 5l8 7-8 7" stroke="#003300" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </NuxtLink>
-        <span class="app-title">CARSU · Leave &amp; Travel Requirements</span>
+        <span class="app-title">Leave &amp; Travel Requirements</span>
       </div>
       <div class="topbar-right">
         <BackToApprovals />

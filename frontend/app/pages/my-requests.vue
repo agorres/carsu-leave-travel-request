@@ -111,7 +111,7 @@ onMounted(loadRequests)
             <path d="M8 5l8 7-8 7" stroke="#003300" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </NuxtLink>
-        <span class="app-title">CARSU · My Requests</span>
+        <span class="app-title">My Requests</span>
       </div>
       <div class="topbar-right">
         <BackToApprovals />
