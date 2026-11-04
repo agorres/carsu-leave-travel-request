@@ -361,7 +361,9 @@ watch(() => route.fullPath, () => { drawerOpen.value = false; accountOpen.value 
 .has-back .app-content :is(.admin-title, .topbar-left) {
   padding-left: 52px;
 }
-.has-back .app-content .app-icon {
+/* The circle icon in each page's own top bar is redundant: the sidebar
+   already carries the app's circle icon. */
+.app-content .app-icon {
   display: none;
 }
 </style>
