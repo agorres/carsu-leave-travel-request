@@ -44,7 +44,9 @@ export type SubmissionStatus =
   // final approval: standard flow, AND Foreign Travel + non-IMP
   // (straight from Admin Council endorsement)
   | 'for_board_approval'
-  | 'board_approved';
+  | 'board_approved'
+  // Board declined the request at final approval (a reason is recorded)
+  | 'board_not_approved';
 
 export type TravelPurpose = 'official' | 'personal';
 
@@ -78,6 +80,8 @@ export interface Submission {
   presidentApprovedAt: string | null;
   presidentEndorsedAt: string | null;
   boardApprovedAt: string | null;
+  boardNotApprovedAt: string | null;
+  boardNotApprovedReason: string | null;
   createdAt: string;
   documents: SubmissionDocument[];
 }
@@ -292,6 +296,16 @@ export function useChecklist() {
     });
   }
 
+  // Board — declines the request at final approval. A reason is required and
+  // is shown to the employee and to every reviewer.
+  async function boardNotApproveSubmission(submissionId: string, reason: string): Promise<Submission> {
+    return $fetch(`${base}/checklist/submissions/${submissionId}/board-not-approve`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: { reason },
+    });
+  }
+
   // Foreign Travel only (both IMP and non-IMP) — ULDC Committee concludes
   // full-body deliberation, forwards to the President for a reference slip.
   async function concludeUldcDeliberation(submissionId: string): Promise<Submission> {
@@ -390,6 +404,7 @@ export function useChecklist() {
     returnForCorrection,
     approveSubmission,
     boardApproveSubmission,
+    boardNotApproveSubmission,
     concludeUldcDeliberation,
     adminCouncilEndorse,
     getCertificationDownloadUrl,

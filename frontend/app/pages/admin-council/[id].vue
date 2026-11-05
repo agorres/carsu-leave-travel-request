@@ -35,6 +35,7 @@ const STATUS_LABELS: Record<string, string> = {
   for_president_endorsement: 'Endorsed — With President',
   for_board_approval: 'With Board',
   board_approved: 'Approved by Board',
+  board_not_approved: 'Not Approved by Board',
 }
 
 const typeLabel = computed(() => {
@@ -47,7 +48,7 @@ const isForAdminCouncil = computed(() => progress.value?.submission.status === '
 const isPastAdminCouncil = computed(() => {
   const s = progress.value?.submission.status
   return s === 'for_president_approval' || s === 'president_approved' || s === 'for_board_confirmation' || s === 'board_confirmed' ||
-    s === 'for_president_endorsement' || s === 'for_board_approval' || s === 'board_approved'
+    s === 'for_president_endorsement' || s === 'for_board_approval' || s === 'board_approved' || s === 'board_not_approved'
 })
 
 function formatDate(value: string | null) {
@@ -684,5 +685,9 @@ onMounted(async () => {
   color: var(--gray);
   font-style: italic;
   max-width: 220px;
+}
+.badge-board_not_approved {
+  background: #fde2e1;
+  color: #b42318;
 }
 </style>

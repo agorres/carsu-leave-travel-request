@@ -158,6 +158,7 @@ export class ChecklistService {
           SubmissionStatus.FOR_PRESIDENT_ENDORSEMENT,
           SubmissionStatus.FOR_BOARD_APPROVAL,
           SubmissionStatus.BOARD_APPROVED,
+          SubmissionStatus.BOARD_NOT_APPROVED,
         ]),
       },
       relations: { documents: true },
@@ -185,6 +186,7 @@ export class ChecklistService {
           SubmissionStatus.BOARD_CONFIRMED,
           SubmissionStatus.FOR_BOARD_APPROVAL,
           SubmissionStatus.BOARD_APPROVED,
+          SubmissionStatus.BOARD_NOT_APPROVED,
         ]),
       },
       relations: { documents: true },
@@ -224,6 +226,7 @@ export class ChecklistService {
           SubmissionStatus.BOARD_CONFIRMED,
           SubmissionStatus.FOR_BOARD_APPROVAL,
           SubmissionStatus.BOARD_APPROVED,
+          SubmissionStatus.BOARD_NOT_APPROVED,
         ]),
       },
       relations: { documents: true },
@@ -248,6 +251,7 @@ export class ChecklistService {
           SubmissionStatus.FOR_PRESIDENT_ENDORSEMENT,
           SubmissionStatus.FOR_BOARD_APPROVAL,
           SubmissionStatus.BOARD_APPROVED,
+          SubmissionStatus.BOARD_NOT_APPROVED,
         ]),
       },
       relations: { documents: true },
@@ -274,6 +278,7 @@ export class ChecklistService {
           SubmissionStatus.FOR_PRESIDENT_ENDORSEMENT,
           SubmissionStatus.FOR_BOARD_APPROVAL,
           SubmissionStatus.BOARD_APPROVED,
+          SubmissionStatus.BOARD_NOT_APPROVED,
         ]),
       },
       relations: { documents: true },
@@ -840,5 +845,37 @@ export class ChecklistService {
       boardApprovedAt,
     });
     return { ...submission, status: SubmissionStatus.BOARD_APPROVED, boardApprovedAt };
+  }
+
+  /**
+   * Board's final decision when it does NOT approve the request. Valid from
+   * the same stages as boardApprove, and a written reason is required. The
+   * request is locked permanently — a final state, like approval.
+   */
+  async boardNotApprove(submissionId: string, reason: string): Promise<Submission> {
+    const submission = await this.getSubmission(submissionId);
+    if (
+      submission.status !== SubmissionStatus.FOR_BOARD_DELIBERATION &&
+      submission.status !== SubmissionStatus.FOR_BOARD_APPROVAL
+    ) {
+      throw new BadRequestException('Only a request currently awaiting final Board approval can be marked not approved');
+    }
+    const trimmed = (reason ?? '').trim();
+    if (!trimmed) {
+      throw new BadRequestException('Please give the reason the request was not approved');
+    }
+
+    const boardNotApprovedAt = new Date();
+    await this.submissionRepo.update(submissionId, {
+      status: SubmissionStatus.BOARD_NOT_APPROVED,
+      boardNotApprovedAt,
+      boardNotApprovedReason: trimmed,
+    });
+    return {
+      ...submission,
+      status: SubmissionStatus.BOARD_NOT_APPROVED,
+      boardNotApprovedAt,
+      boardNotApprovedReason: trimmed,
+    };
   }
 }

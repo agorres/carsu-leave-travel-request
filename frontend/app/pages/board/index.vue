@@ -35,6 +35,7 @@ const STATUS_LABELS: Record<string, string> = {
   board_confirmed: 'Confirmed',
   for_board_approval: 'For Final Approval',
   board_approved: 'Approved',
+  board_not_approved: 'Not Approved',
 }
 
 function typeLabel(type: string) {
@@ -303,5 +304,9 @@ onMounted(async () => {
 .purpose-personal {
   background: #fdf1e0;
   color: #a05a1a;
+}
+.pill-board_not_approved {
+  background: #fde2e1;
+  color: #b42318;
 }
 </style>

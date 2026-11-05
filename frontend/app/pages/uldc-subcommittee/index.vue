@@ -40,6 +40,7 @@ const STATUS_LABELS: Record<string, string> = {
   for_president_endorsement: 'For President Endorsement',
   for_board_approval: 'For Board Approval',
   board_approved: 'Approved by Board',
+  board_not_approved: 'Not Approved by Board',
 }
 
 function typeLabel(type: string) {
@@ -328,5 +329,9 @@ onMounted(async () => {
 .purpose-personal {
   background: #fdf1e0;
   color: #a05a1a;
+}
+.pill-board_not_approved {
+  background: #fde2e1;
+  color: #b42318;
 }
 </style>

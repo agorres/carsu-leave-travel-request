@@ -38,6 +38,7 @@ const STATUS_LABELS: Record<string, string> = {
   for_president_endorsement: 'For President Endorsement',
   for_board_approval: 'For Board Approval',
   board_approved: 'Approved by Board',
+  board_not_approved: 'Not Approved by Board',
 }
 
 function typeLabel(type: string) {
@@ -69,6 +70,7 @@ const sortedSubmissions = computed(() => {
     president_approved: 2,
     board_confirmed: 3,
     board_approved: 3,
+    board_not_approved: 3,
   }
   return [...submissions.value].sort((a, b) => {
     const pa = priority[a.status] ?? 9
@@ -474,5 +476,9 @@ onMounted(loadRequests)
   justify-content: space-between;
   font-size: 12.5px;
   font-weight: 600;
+}
+.pill-board_not_approved {
+  background: #fde2e1;
+  color: #b42318;
 }
 </style>

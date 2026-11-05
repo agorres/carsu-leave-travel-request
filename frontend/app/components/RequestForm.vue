@@ -87,6 +87,7 @@ const returnedByLabel = computed(
 )
 const isForBoard = computed(() => progress.value?.submission.status === 'for_board_deliberation')
 const isBoardApproved = computed(() => progress.value?.submission.status === 'board_approved')
+const isBoardNotApproved = computed(() => progress.value?.submission.status === 'board_not_approved')
 const isUldcDeliberation = computed(() => progress.value?.submission.status === 'uldc_deliberation')
 const isForPresidentReference = computed(() => progress.value?.submission.status === 'for_president_reference')
 const isForAdminCouncil = computed(() => progress.value?.submission.status === 'for_admin_council')
@@ -198,7 +199,7 @@ function recalculateProgress() {
     'submitted', 'returned_for_correction',
     'for_board_deliberation', 'uldc_deliberation', 'for_president_reference', 'for_admin_council',
     'for_president_approval', 'president_approved', 'for_board_confirmation', 'board_confirmed',
-    'for_president_endorsement', 'for_board_approval', 'board_approved',
+    'for_president_endorsement', 'for_board_approval', 'board_approved', 'board_not_approved',
   ]
   if (!lockedStatuses.includes(progress.value.submission.status)) {
     progress.value.submission.status = missingItems.length === 0 ? 'complete' : 'in_progress'
@@ -550,7 +551,14 @@ const groupedItems = computed(() => {
           </table>
         </div>
 
-        <div v-if="isBoardConfirmed" class="complete-banner approved-banner">
+        <div v-if="isBoardNotApproved" class="complete-banner declined-banner">
+          <p>✕ This request was not approved by the Board{{ progress.submission.boardNotApprovedAt ? ' on ' + formatDateTime(progress.submission.boardNotApprovedAt) : '' }}.</p>
+          <p v-if="progress.submission.boardNotApprovedReason" class="declined-reason">
+            <strong>Reason:</strong> {{ progress.submission.boardNotApprovedReason }}
+          </p>
+          <button class="begin-btn" @click="startNewRequest">Back</button>
+        </div>
+        <div v-else-if="isBoardConfirmed" class="complete-banner approved-banner">
           <p>✓ Request confirmed by the Board{{ progress.submission.boardConfirmedAt ? ' on ' + formatDateTime(progress.submission.boardConfirmedAt) : '' }}. No further action needed.</p>
           <button class="begin-btn" @click="startNewRequest">Back</button>
         </div>
@@ -1076,6 +1084,14 @@ const groupedItems = computed(() => {
 }
 .approved-banner {
   background: #eaf7ea;
+}
+.declined-banner {
+  background: #fdecec;
+  border-color: #b00020;
+  color: #7a0016;
+}
+.declined-banner .declined-reason {
+  white-space: pre-wrap;
 }
 .review-badge {
   display: inline-block;

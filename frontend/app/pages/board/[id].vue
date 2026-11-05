@@ -10,7 +10,7 @@ const route = useRoute()
 const id = route.params.id as string
 const router = useRouter()
 
-const { getProgress, getDocumentDownloadUrl, getReferenceSlipDownloadUrl, getCertificationDownloadUrl, boardApproveSubmission, boardConfirm } = useChecklist()
+const { getProgress, getDocumentDownloadUrl, getReferenceSlipDownloadUrl, getCertificationDownloadUrl, boardApproveSubmission, boardNotApproveSubmission, boardConfirm } = useChecklist()
 const { user, logout } = useAuth()
 
 const progress = ref<SubmissionProgress | null>(null)
@@ -34,6 +34,7 @@ const STATUS_LABELS: Record<string, string> = {
   board_confirmed: 'Confirmed by Board',
   for_board_approval: 'For Board Approval',
   board_approved: 'Approved by Board',
+  board_not_approved: 'Not Approved by Board',
 }
 
 const typeLabel = computed(() => {
@@ -49,6 +50,7 @@ const isForBoardConfirmation = computed(() => progress.value?.submission.status 
 const isBoardConfirmed = computed(() => progress.value?.submission.status === 'board_confirmed')
 const isForBoardApproval = computed(() => progress.value?.submission.status === 'for_board_approval')
 const isBoardApproved = computed(() => progress.value?.submission.status === 'board_approved')
+const isBoardNotApproved = computed(() => progress.value?.submission.status === 'board_not_approved')
 
 function formatDate(value: string | null) {
   if (!value) return '—'
@@ -75,6 +77,36 @@ async function onBoardApprove() {
     boardApproveError.value = e?.data?.message || 'Could not record Board approval.'
   } finally {
     boardApproving.value = false
+  }
+}
+
+// Board declines the request: a written reason is required.
+const showNotApproveForm = ref(false)
+const notApproveReason = ref('')
+const notApproving = ref(false)
+const notApproveError = ref('')
+function cancelNotApprove() {
+  showNotApproveForm.value = false
+  notApproveReason.value = ''
+  notApproveError.value = ''
+}
+async function onBoardNotApprove() {
+  const reason = notApproveReason.value.trim()
+  if (!reason) {
+    notApproveError.value = 'Please give the reason the request was not approved.'
+    return
+  }
+  notApproving.value = true
+  notApproveError.value = ''
+  try {
+    const updated = await boardNotApproveSubmission(id, reason)
+    if (progress.value) progress.value.submission = { ...progress.value.submission, ...updated }
+    cancelNotApprove()
+  } catch (e: any) {
+    const msg = e?.data?.message
+    notApproveError.value = (Array.isArray(msg) ? msg.join(' ') : msg) || 'Could not record the decision.'
+  } finally {
+    notApproving.value = false
   }
 }
 
@@ -134,6 +166,7 @@ onMounted(async () => {
             <span v-if="isForBoardConfirmation || isBoardConfirmed || isPresidentApproved" class="muted">Approved by President {{ formatDateTime(progress.submission.presidentApprovedAt) }}</span>
             <span v-if="isBoardConfirmed" class="muted">Confirmed by Board {{ formatDateTime(progress.submission.boardConfirmedAt) }}</span>
             <span v-if="isBoardApproved" class="muted">Approved by Board {{ formatDateTime(progress.submission.boardApprovedAt) }}</span>
+            <span v-if="isBoardNotApproved" class="muted">Not approved by Board {{ formatDateTime(progress.submission.boardNotApprovedAt) }}</span>
           </div>
                     <div v-if="progress.submission.referenceSlipOriginalFileName || progress.submission.certificationOriginalFileName" class="status-row">
             <a
@@ -281,11 +314,32 @@ onMounted(async () => {
           <div v-if="isForBoard || isForBoardApproval" class="screening-actions">
             <p class="muted">{{ isForBoard ? 'ULDC has approved every document for this request.' : 'The President has endorsed this request.' }} Review the documents above, then record the Board's final decision.</p>
             <div class="action-buttons">
-              <button class="action-btn primary" :disabled="boardApproving" @click="onBoardApprove">
+              <button class="action-btn primary" :disabled="boardApproving || notApproving" @click="onBoardApprove">
                 {{ boardApproving ? 'Recording…' : 'Mark Approved by Board' }}
+              </button>
+              <button class="action-btn danger" :disabled="boardApproving || notApproving" @click="showNotApproveForm = !showNotApproveForm">
+                Not Approve
               </button>
             </div>
             <p v-if="boardApproveError" class="item-error">{{ boardApproveError }}</p>
+
+            <div v-if="showNotApproveForm" class="not-approve-form">
+              <label for="not-approve-reason">Reason for not approving <span class="required">*</span></label>
+              <textarea
+                id="not-approve-reason"
+                v-model="notApproveReason"
+                rows="4"
+                maxlength="2000"
+                placeholder="Explain why the Board is not approving this request. The employee and the reviewers will see this."
+              ></textarea>
+              <div class="action-buttons">
+                <button class="action-btn danger solid" :disabled="notApproving || !notApproveReason.trim()" @click="onBoardNotApprove">
+                  {{ notApproving ? 'Recording…' : 'Confirm Not Approved' }}
+                </button>
+                <button class="action-btn ghost" :disabled="notApproving" @click="cancelNotApprove">Cancel</button>
+              </div>
+              <p v-if="notApproveError" class="item-error">{{ notApproveError }}</p>
+            </div>
           </div>
 
           <div v-else-if="isForPresidentApproval || isPresidentApproved" class="screening-actions">
@@ -308,6 +362,14 @@ onMounted(async () => {
 
           <div v-else-if="isBoardApproved" class="screening-actions">
             <p class="muted">✓ This request has been approved by the Board. No further action needed.</p>
+          </div>
+
+          <div v-else-if="isBoardNotApproved" class="screening-actions">
+            <p class="muted">✕ This request was not approved by the Board. No further action needed.</p>
+            <div class="decision-reason">
+              <strong>Reason</strong>
+              <p>{{ progress.submission.boardNotApprovedReason }}</p>
+            </div>
           </div>
         </section>
       </template>
@@ -542,6 +604,68 @@ onMounted(async () => {
 .action-btn.primary {
   background: var(--primary-green);
   color: #fff;
+}
+.action-btn.danger {
+  background: #fff;
+  color: #b42318;
+  border: 1px solid #b42318;
+}
+.action-btn.danger.solid {
+  background: #b42318;
+  color: #fff;
+}
+.action-btn.ghost {
+  background: transparent;
+  color: var(--gray);
+  border: 1px solid #c9c9c9;
+}
+.not-approve-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 16px;
+  border: 1px solid #f3b9b6;
+  background: #fff8f8;
+  border-radius: 8px;
+}
+.not-approve-form label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #7a0016;
+}
+.not-approve-form .required {
+  color: #b42318;
+}
+.not-approve-form textarea {
+  width: 100%;
+  border: 1px solid #dcdcdc;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 14px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.not-approve-form textarea:focus {
+  outline: 2px solid #b42318;
+  outline-offset: 0;
+}
+.decision-reason {
+  border-left: 4px solid #b42318;
+  background: #fdecec;
+  padding: 12px 14px;
+  border-radius: 4px;
+  font-size: 13.5px;
+  color: #7a0016;
+}
+.decision-reason p {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+}
+.badge-board_not_approved {
+  background: #fde2e1;
+  color: #b42318;
 }
 .action-btn:disabled {
   opacity: 0.4;

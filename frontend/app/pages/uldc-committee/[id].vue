@@ -37,6 +37,7 @@ const STATUS_LABELS: Record<string, string> = {
   board_confirmed: 'Confirmed by Board',
   for_board_approval: 'For Board Approval',
   board_approved: 'Approved by Board',
+  board_not_approved: 'Not Approved by Board',
 }
 
 const typeLabel = computed(() => {
@@ -64,7 +65,8 @@ const isPastDeliberation = computed(() => {
     s === 'for_board_confirmation' ||
     s === 'board_confirmed' ||
     s === 'for_board_approval' ||
-    s === 'board_approved'
+    s === 'board_approved' ||
+    s === 'board_not_approved'
   )
 })
 
@@ -722,5 +724,9 @@ onMounted(async () => {
 .review-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+.badge-board_not_approved {
+  background: #fde2e1;
+  color: #b42318;
 }
 </style>

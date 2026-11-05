@@ -42,6 +42,7 @@ const STATUS_LABELS: Record<string, string> = {
   for_president_endorsement: 'For President Endorsement',
   for_board_approval: 'For Board Approval',
   board_approved: 'Approved by Board',
+  board_not_approved: 'Not Approved by Board',
 }
 
 const typeLabel = computed(() => {
@@ -67,7 +68,7 @@ const isPastUldc = computed(() => {
   const s = progress.value?.submission.status
   return s === 'uldc_deliberation' || s === 'for_president_reference' || s === 'for_admin_council' || s === 'for_president_approval' ||
     s === 'president_approved' || s === 'for_board_confirmation' || s === 'board_confirmed' ||
-    s === 'for_president_endorsement' || s === 'for_board_approval' || s === 'board_approved'
+    s === 'for_president_endorsement' || s === 'for_board_approval' || s === 'board_approved' || s === 'board_not_approved'
 })
 
 function formatDate(value: string | null) {
@@ -737,5 +738,9 @@ onMounted(async () => {
 .review-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+.badge-board_not_approved {
+  background: #fde2e1;
+  color: #b42318;
 }
 </style>

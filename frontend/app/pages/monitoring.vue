@@ -44,6 +44,7 @@ const STATUS_LABELS: Record<string, string> = {
   for_president_endorsement: 'For President Endorsement',
   for_board_approval: 'For Board Approval',
   board_approved: 'Approved by Board',
+  board_not_approved: 'Not Approved by Board',
 }
 
 const STATUS_FILTER_OPTIONS = Object.entries(STATUS_LABELS)
@@ -52,7 +53,7 @@ const STATUS_FILTER_OPTIONS = Object.entries(STATUS_LABELS)
 // summary cards and the donut chart. Purely a display grouping — doesn't
 // affect the status filter dropdown above, which still lists every exact
 // status.
-const STATUS_BUCKETS: Record<string, 'draft' | 'review' | 'returned' | 'approved'> = {
+const STATUS_BUCKETS: Record<string, 'draft' | 'review' | 'returned' | 'approved' | 'declined'> = {
   in_progress: 'draft',
   complete: 'draft',
   submitted: 'review',
@@ -68,19 +69,22 @@ const STATUS_BUCKETS: Record<string, 'draft' | 'review' | 'returned' | 'approved
   for_president_endorsement: 'review',
   for_board_approval: 'review',
   board_approved: 'approved',
+  board_not_approved: 'declined',
 }
-const BUCKET_ORDER = ['draft', 'review', 'returned', 'approved'] as const
+const BUCKET_ORDER = ['draft', 'review', 'returned', 'approved', 'declined'] as const
 const BUCKET_LABELS: Record<string, string> = {
   draft: 'Draft (Not Submitted)',
   review: 'Under Review',
   returned: 'Returned for Correction',
   approved: 'Approved (Final)',
+  declined: 'Not Approved by Board',
 }
 const BUCKET_COLORS: Record<string, string> = {
   draft: '#9ca3af',
   review: '#f5a623',
   returned: '#e05252',
   approved: '#2f9e44',
+  declined: '#8b1a1a',
 }
 
 function typeLabel(type: string) {
@@ -97,7 +101,7 @@ function formatDateTime(value: string | null) {
 // Every stat below is computed off the full, unfiltered submissions list —
 // the search box and status dropdown only narrow the table underneath.
 const bucketCounts = computed(() => {
-  const counts: Record<string, number> = { draft: 0, review: 0, returned: 0, approved: 0 }
+  const counts: Record<string, number> = { draft: 0, review: 0, returned: 0, approved: 0, declined: 0 }
   for (const s of submissions.value) {
     const bucket = STATUS_BUCKETS[s.status] ?? 'review'
     counts[bucket]++
@@ -189,6 +193,10 @@ onMounted(async () => {
           <span class="stat-label">Approved (Final)</span>
         </div>
         <div class="stat-card">
+          <span class="stat-value" :style="{ color: BUCKET_COLORS.declined }">{{ bucketCounts.declined }}</span>
+          <span class="stat-label">Not Approved by Board</span>
+        </div>
+        <div class="stat-card">
           <span class="stat-value" :style="{ color: BUCKET_COLORS.draft }">{{ bucketCounts.draft }}</span>
           <span class="stat-label">Draft (Not Submitted)</span>
         </div>
@@ -237,7 +245,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <p class="monitoring-note">Read-only — every request in the system, regardless of stage. Actions are only available from Requests for Action.</p>
+      <p class="monitoring-note">Read-only — every request in the system, regardless of stage. Actions are only available from For Approval.</p>
 
       <div v-if="loading" class="admin-card">
         <p class="muted">Loading requests…</p>
@@ -649,5 +657,9 @@ onMounted(async () => {
 .purpose-personal {
   background: #fdf1e0;
   color: #a05a1a;
+}
+.pill-board_not_approved {
+  background: #fde2e1;
+  color: #b42318;
 }
 </style>

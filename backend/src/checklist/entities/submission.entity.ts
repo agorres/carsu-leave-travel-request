@@ -44,6 +44,7 @@ export enum SubmissionStatus {
   // Foreign Travel + non-IMP (from FOR_ADMIN_COUNCIL, once Admin Council endorses) ---
   FOR_BOARD_APPROVAL = 'for_board_approval', // Awaiting the Board's final approval
   BOARD_APPROVED = 'board_approved', // Board approved — final state
+  BOARD_NOT_APPROVED = 'board_not_approved', // Board declined the request, with a written reason — final state
 }
 
 // Every status past this point means the request is locked from further
@@ -61,6 +62,7 @@ export const LOCKED_SUBMISSION_STATUSES: SubmissionStatus[] = [
   SubmissionStatus.FOR_PRESIDENT_ENDORSEMENT,
   SubmissionStatus.FOR_BOARD_APPROVAL,
   SubmissionStatus.BOARD_APPROVED,
+  SubmissionStatus.BOARD_NOT_APPROVED,
 ];
 
 @Entity('submissions')
@@ -200,6 +202,14 @@ export class Submission {
   // Set when the Board gives final approval (standard flow, or Foreign Travel + non-IMP)
   @Column({ type: 'timestamp', nullable: true })
   boardApprovedAt: Date | null;
+
+  // Set when the Board declines the request at final approval, together with
+  // the reason it gave (shown to the employee and to every reviewer).
+  @Column({ type: 'timestamp', nullable: true })
+  boardNotApprovedAt: Date | null;
+
+  @Column({ type: 'text', nullable: true })
+  boardNotApprovedReason: string | null;
 
   @OneToMany(() => SubmissionDocument, (doc) => doc.submission, { cascade: true })
   documents: SubmissionDocument[];

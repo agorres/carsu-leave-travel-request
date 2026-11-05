@@ -21,6 +21,7 @@ import { ChecklistService } from './checklist.service';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 import { UploadDocumentDto } from './dto/upload-document.dto';
 import { ReviewDocumentDto } from './dto/review-document.dto';
+import { BoardNotApproveDto } from './dto/board-not-approve.dto';
 import { RequestType } from './request-type.enum';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -378,6 +379,13 @@ export class ChecklistController {
   @Post('submissions/:id/board-approve')
   boardApprove(@Param('id') id: string) {
     return this.checklistService.boardApprove(id);
+  }
+
+  // Board declines the request at final approval; a reason is required.
+  @UseGuards(BoardGuard)
+  @Post('submissions/:id/board-not-approve')
+  boardNotApprove(@Param('id') id: string, @Body() dto: BoardNotApproveDto) {
+    return this.checklistService.boardNotApprove(id, dto.reason);
   }
 
   // Employees can only touch their own submissions; any reviewer role

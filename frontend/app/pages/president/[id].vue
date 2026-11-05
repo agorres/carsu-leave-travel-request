@@ -36,6 +36,7 @@ const STATUS_LABELS: Record<string, string> = {
   for_president_endorsement: 'For Endorsement',
   for_board_approval: 'Endorsed — With Board',
   board_approved: 'Approved by Board',
+  board_not_approved: 'Not Approved by Board',
 }
 
 const typeLabel = computed(() => {
@@ -764,5 +765,9 @@ onMounted(async () => {
   color: var(--gray);
   font-style: italic;
   max-width: 220px;
+}
+.badge-board_not_approved {
+  background: #fde2e1;
+  color: #b42318;
 }
 </style>
