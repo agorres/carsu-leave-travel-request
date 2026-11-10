@@ -253,11 +253,6 @@ watch(() => route.fullPath, () => { drawerOpen.value = false; accountOpen.value 
             </div>
           </template>
           <p v-if="visibleItems.length === 0" class="no-match">No menu items match “{{ query }}”.</p>
-
-          <button class="menu-item signout" @click="signOut">
-            <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path :d="ICONS.logout" fill="currentColor" /></svg>
-            <span>Log out</span>
-          </button>
         </nav>
       </div>
     </aside>
@@ -468,7 +463,6 @@ watch(() => route.fullPath, () => { drawerOpen.value = false; accountOpen.value 
 .menu-item.sub { height: 42px; padding-left: 64px; font-weight: 400; }
 .menu-item.active svg { color: var(--emerald); }
 .menu-item:focus-visible { outline: 2px solid var(--emerald); outline-offset: -2px; }
-.signout { margin-top: 8px; }
 .no-match { margin: 8px 16px; font-size: 13px; color: #666; }
 
 .app-content {
